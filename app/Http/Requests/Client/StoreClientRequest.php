@@ -38,6 +38,13 @@ class StoreClientRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'document.unique' => 'CPF/CNPJ já está em uso.',
+        ];
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {

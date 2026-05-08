@@ -1072,7 +1072,7 @@
                                 <textarea v-model.trim="orderForm.notes" class="form-control" rows="2"></textarea>
                             </div>
                         </div>
-                        <div class="col-md-12">
+                        <div class="col-md-12" v-if="orderForm.id">
                             <div class="form-group">
                                 <label>Solução</label>
                                 <textarea v-model.trim="orderForm.solution" class="form-control" rows="2" :class="{ 'is-invalid': showOrderError('solution') }" @blur="touch('order','solution')" placeholder="Obrigatório ao finalizar a OS"></textarea>
@@ -1094,7 +1094,7 @@
                         </div>
                     </div>
 
-                    <div class="card">
+                    <div class="card" v-if="orderForm.id">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <b>Assinatura do solicitante</b>
                             <button class="btn btn-sm btn-primary" @click="openSignatureModal" :disabled="!canSignOrder">
@@ -1116,40 +1116,54 @@
                         <div class="card-header">
                             <b>Serviços</b>
                         </div>
-                        <div class="card-body table-responsive p-0">
-                            <table class="table table-sm table-hover mb-0">
-                                <thead>
-                                <tr>
-                                    <th style="width: 50px;"></th>
-                                    <th>Serviço</th>
-                                    <th v-if="isAdmin" style="width: 120px;">Valor</th>
-                                    <th style="width: 120px;">Qtd</th>
-                                    <th v-if="isAdmin" style="width: 140px;">Subtotal</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr v-for="s in servicesAll" :key="'osv'+s.id">
-                                    <td>
-                                        <div class="icheck-primary d-inline">
-                                            <input type="checkbox" :id="'svc'+s.id" v-model="orderForm.selected" :value="s.id" @change="touch('order','services'); recalcOrderTotal()">
-                                            <label :for="'svc'+s.id"></label>
-                                        </div>
-                                    </td>
-                                    <td>{{ s.name }}</td>
-                                    <td v-if="isAdmin">R$ {{ formatMoney(s.value) }}</td>
-                                    <td>
-                                        <input type="number" min="1" class="form-control form-control-sm"
-                                               v-model.number="orderForm.quantities[s.id]"
-                                               :disabled="!orderForm.selected.includes(s.id)"
-                                               @input="recalcOrderTotal">
-                                    </td>
-                                    <td v-if="isAdmin">R$ {{ formatMoney(lineTotalPreview(s.id, s.value)) }}</td>
-                                </tr>
-                                <tr v-if="servicesAll.length === 0">
-                                    <td :colspan="isAdmin ? 5 : 3" class="text-center text-muted p-4">Cadastre serviços para criar uma OS.</td>
-                                </tr>
-                                </tbody>
-                            </table>
+                        <div class="card-body p-0">
+                            <div class="p-3">
+                                <div class="input-group">
+                                    <input v-model.trim="orderServiceSearch" class="form-control" placeholder="Buscar serviço cadastrado (nome)" :disabled="servicesAll.length === 0">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-default" @click="orderServiceSearch = ''" :disabled="!orderServiceSearch"><i class="fas fa-times"></i></button>
+                                    </div>
+                                </div>
+                                <div v-if="servicesAll.length === 0" class="text-muted mt-2">Cadastre serviços para criar uma OS.</div>
+                                <div v-else-if="orderServiceSearch && serviceSearchResults.length === 0" class="text-muted mt-2">Nenhum serviço encontrado.</div>
+                                <div v-else-if="orderServiceSearch && serviceSearchResults.length" class="list-group mt-2">
+                                    <a v-for="s in serviceSearchResults" :key="'sr'+s.id" href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                       @click.prevent="addServiceToOrder(s)">
+                                        <span>{{ s.name }}</span>
+                                        <span class="badge badge-primary badge-pill">Adicionar</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div v-if="orderForm.selected && orderForm.selected.length" class="table-responsive p-0">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead>
+                                    <tr>
+                                        <th>Serviço</th>
+                                        <th style="width: 120px;">Qtd</th>
+                                        <th v-if="isAdmin" style="width: 120px;">Valor</th>
+                                        <th v-if="isAdmin" style="width: 140px;">Subtotal</th>
+                                        <th style="width: 70px;"></th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr v-for="sid in orderForm.selected" :key="'sel'+sid">
+                                        <td>{{ serviceById(sid) ? serviceById(sid).name : sid }}</td>
+                                        <td>
+                                            <input type="number" min="1" class="form-control form-control-sm"
+                                                   v-model.number="orderForm.quantities[sid]"
+                                                   @input="recalcOrderTotal">
+                                        </td>
+                                        <td v-if="isAdmin">R$ {{ formatMoney(serviceById(sid) ? serviceById(sid).value : 0) }}</td>
+                                        <td v-if="isAdmin">R$ {{ formatMoney(lineTotalPreview(sid, serviceById(sid) ? serviceById(sid).value : 0)) }}</td>
+                                        <td class="text-right">
+                                            <button class="btn btn-sm btn-danger" @click="removeServiceFromOrder(sid)"><i class="fas fa-times"></i></button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div v-else class="text-center text-muted p-4">Pesquise e adicione serviços.</div>
                         </div>
                     </div>
                     <div v-if="showOrderError('services')" class="text-danger mt-2" style="font-size: 0.9rem;">
@@ -1353,6 +1367,7 @@ createApp({
             clientForm: this.emptyClient(),
             serviceForm: this.emptyService(),
             orderForm: this.emptyOrder(),
+            orderServiceSearch: '',
             orderView: { services: [] },
             signatureComponent: null,
             touched: {
@@ -1513,7 +1528,7 @@ createApp({
             const errors = {};
 
             if (!f.client_id) errors.client_id = 'Cliente é obrigatório.';
-            if (!f.selected || f.selected.length === 0) errors.services = 'Selecione ao menos um serviço.';
+            if (!f.selected || f.selected.length === 0) errors.services = 'Adicione ao menos um serviço.';
             if (f.status === 'finalizada' && !String(f.signature_image || '').trim()) errors.signature_image = 'Assinatura é obrigatória para finalizar a OS.';
             if (f.status === 'finalizada' && !String(f.solution || '').trim()) errors.solution = 'Solução é obrigatória para finalizar a OS.';
 
@@ -1524,6 +1539,15 @@ createApp({
         },
         canSignOrder() {
             return !this.isClient && Boolean(this.orderForm.id) && this.orderForm.status !== 'finalizada' && this.orderForm.status !== 'cancelada';
+        },
+        serviceSearchResults() {
+            const q = String(this.orderServiceSearch || '').trim().toLowerCase();
+            if (!q) return [];
+            const selected = this.orderForm && this.orderForm.selected ? this.orderForm.selected : [];
+            return (this.servicesAll || [])
+                .filter((s) => String(s.name || '').toLowerCase().includes(q))
+                .filter((s) => !selected.includes(s.id))
+                .slice(0, 8);
         }
     },
     methods: {
@@ -2271,6 +2295,32 @@ createApp({
                 this.setAlert(this.apiErrorMessage(e));
             }
         },
+        serviceById(id) {
+            const sid = Number(id);
+            return (this.servicesAll || []).find((s) => Number(s.id) === sid) || null;
+        },
+        addServiceToOrder(service) {
+            if (!service || !service.id) return;
+            const sid = Number(service.id);
+            if (!this.orderForm.selected.includes(sid)) {
+                this.orderForm.selected.push(sid);
+            }
+            if (!this.orderForm.quantities[sid]) {
+                this.orderForm.quantities[sid] = 1;
+            }
+            this.orderServiceSearch = '';
+            this.touch('order', 'services');
+            this.recalcOrderTotal();
+        },
+        removeServiceFromOrder(serviceId) {
+            const sid = Number(serviceId);
+            this.orderForm.selected = (this.orderForm.selected || []).filter((x) => Number(x) !== sid);
+            if (this.orderForm.quantities && Object.prototype.hasOwnProperty.call(this.orderForm.quantities, sid)) {
+                delete this.orderForm.quantities[sid];
+            }
+            this.touch('order', 'services');
+            this.recalcOrderTotal();
+        },
         lineTotalPreview(serviceId, unitValue) {
             const selected = this.orderForm.selected.includes(serviceId);
             if (!selected) return 0;
@@ -2279,9 +2329,10 @@ createApp({
         },
         recalcOrderTotal() {
             let total = 0;
-            for (const s of this.servicesAll) {
-                total += this.lineTotalPreview(s.id, s.value);
-                if (!this.orderForm.quantities[s.id]) this.orderForm.quantities[s.id] = 1;
+            for (const sid of (this.orderForm.selected || [])) {
+                const s = this.serviceById(sid);
+                if (!this.orderForm.quantities[sid]) this.orderForm.quantities[sid] = 1;
+                total += this.lineTotalPreview(sid, s ? s.value : 0);
             }
             this.orderForm.total_preview = total;
         },
@@ -2304,6 +2355,7 @@ createApp({
             this.touched.order = {};
             this.orderForm = this.emptyOrder();
             this.signatureComponent = null;
+            this.orderServiceSearch = '';
 
             if (order) {
                 this.orderForm.id = order.id;
