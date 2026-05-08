@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>OSYSTEM</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@1.13.3/css/OverlayScrollbars.min.css">
@@ -320,7 +321,7 @@
             <div class="sidebar">
                 <nav class="mt-2">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-                        <li class="nav-item">
+                        <li class="nav-item" v-if="isAdmin">
                             <a href="#/dashboard" class="nav-link" :class="{ active: currentView === 'dashboard' }">
                                 <i class="nav-icon fas fa-tachometer-alt"></i>
                                 <p>Dashboard</p>
@@ -329,16 +330,16 @@
                         <li class="nav-item">
                             <a href="#/orders" class="nav-link" :class="{ active: currentView === 'orders' }">
                                 <i class="nav-icon fas fa-file-invoice"></i>
-                                <p>{{ isClient ? 'Minhas OS' : 'Ordens de Serviço' }}</p>
+                                <p>{{ isAdmin ? 'Ordens de Serviço' : 'Minhas OS' }}</p>
                             </a>
                         </li>
-                        <li class="nav-item" v-if="!isClient">
+                        <li class="nav-item" v-if="isAdmin">
                             <a href="#/clients" class="nav-link" :class="{ active: currentView === 'clients' }">
                                 <i class="nav-icon fas fa-users"></i>
                                 <p>Clientes</p>
                             </a>
                         </li>
-                        <li class="nav-item" v-if="!isClient">
+                        <li class="nav-item" v-if="isAdmin">
                             <a href="#/services" class="nav-link" :class="{ active: currentView === 'services' }">
                                 <i class="nav-icon fas fa-tools"></i>
                                 <p>Serviços</p>
@@ -348,6 +349,12 @@
                             <a href="#/company" class="nav-link" :class="{ active: currentView === 'company' }">
                                 <i class="nav-icon fas fa-building"></i>
                                 <p>Empresa</p>
+                            </a>
+                        </li>
+                        <li class="nav-item" v-if="isAdmin">
+                            <a href="#/email" class="nav-link" :class="{ active: currentView === 'email' }">
+                                <i class="nav-icon fas fa-envelope"></i>
+                                <p>Config. Email</p>
                             </a>
                         </li>
                         <li class="nav-item" v-if="isAdmin">
@@ -391,7 +398,7 @@
                         {{ ui.notice }}
                     </div>
 
-                    <div v-if="currentView === 'dashboard'" class="row">
+                    <div v-if="currentView === 'dashboard' && isAdmin" class="row">
                         <div class="col-lg-4 col-12">
                             <div class="small-box bg-info">
                                 <div class="inner">
@@ -427,7 +434,7 @@
                         </div>
                     </div>
 
-                    <div v-if="currentView === 'clients'" class="card">
+                    <div v-if="currentView === 'clients' && isAdmin" class="card">
                         <div class="card-header">
                             <div class="d-flex flex-wrap align-items-center justify-content-between">
                                 <div class="input-group" style="max-width: 420px;">
@@ -457,8 +464,11 @@
                                     <td>{{ c.phone }}</td>
                                     <td class="d-none d-md-table-cell">{{ c.email || '-' }}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-warning mr-1" @click="openClientModal(c)"><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-sm btn-danger" @click="deleteClient(c)"><i class="fas fa-trash"></i></button>
+                                        <template v-if="isAdmin">
+                                            <button class="btn btn-sm btn-warning mr-1" @click="openClientModal(c)"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-sm btn-danger" @click="deleteClient(c)"><i class="fas fa-trash"></i></button>
+                                        </template>
+                                        <span v-else class="text-muted">-</span>
                                     </td>
                                 </tr>
                                 <tr v-if="clients.items.length === 0">
@@ -487,7 +497,7 @@
                         </div>
                     </div>
 
-                    <div v-if="currentView === 'services'" class="card">
+                    <div v-if="currentView === 'services' && isAdmin" class="card">
                         <div class="card-header">
                             <div class="d-flex flex-wrap align-items-center justify-content-between">
                                 <div class="input-group" style="max-width: 420px;">
@@ -515,8 +525,11 @@
                                     <td>{{ s.description || '-' }}</td>
                                     <td v-if="isAdmin">R$ {{ formatMoney(s.value) }}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-warning mr-1" @click="openServiceModal(s)"><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-sm btn-danger" @click="deleteService(s)"><i class="fas fa-trash"></i></button>
+                                        <template v-if="isAdmin">
+                                            <button class="btn btn-sm btn-warning mr-1" @click="openServiceModal(s)"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-sm btn-danger" @click="deleteService(s)"><i class="fas fa-trash"></i></button>
+                                        </template>
+                                        <span v-else class="text-muted">-</span>
                                     </td>
                                 </tr>
                                 <tr v-if="services.items.length === 0">
@@ -657,7 +670,82 @@
                         </div>
                     </div>
 
-                    <div v-if="currentView === 'users'" class="card">
+                    <div v-if="currentView === 'email' && isAdmin" class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <b>Envio de e-mail</b>
+                                <div class="text-muted" style="font-size: .9rem;">Configurações SMTP usadas ao finalizar uma OS</div>
+                            </div>
+                            <button class="btn btn-primary" @click="saveEmailSettings" :disabled="isBusy || emailSettingsHasErrors">
+                                <span v-if="isBusy"><i class="fas fa-spinner fa-spin mr-1"></i> Salvando...</span>
+                                <span v-else><i class="fas fa-save mr-1"></i> Salvar</span>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="custom-control custom-switch mb-3">
+                                <input type="checkbox" class="custom-control-input" id="emailEnabled" v-model="emailSettingsForm.enabled" @change="touch('email','enabled')">
+                                <label class="custom-control-label" for="emailEnabled">Ativar envio de e-mail ao finalizar OS</label>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Servidor (host)</label>
+                                        <input v-model.trim="emailSettingsForm.host" class="form-control" :class="{ 'is-invalid': showEmailError('host') }" @blur="touch('email','host')">
+                                        <div v-if="showEmailError('host')" class="invalid-feedback">{{ emailSettingsErrors.host }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label>Porta</label>
+                                        <input v-model="emailSettingsForm.port" type="number" min="1" max="65535" class="form-control" :class="{ 'is-invalid': showEmailError('port') }" @blur="touch('email','port')">
+                                        <div v-if="showEmailError('port')" class="invalid-feedback">{{ emailSettingsErrors.port }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Criptografia</label>
+                                        <select v-model="emailSettingsForm.encryption" class="form-control" @change="touch('email','encryption')">
+                                            <option value="">Nenhuma</option>
+                                            <option value="tls">TLS</option>
+                                            <option value="ssl">SSL</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Usuário</label>
+                                        <input v-model.trim="emailSettingsForm.username" class="form-control" @blur="touch('email','username')">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Senha</label>
+                                        <input v-model="emailSettingsForm.password" type="password" class="form-control" :placeholder="emailSettingsForm.has_password ? 'Deixe em branco para manter' : ''" @blur="touch('email','password')">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Remetente (from_address)</label>
+                                        <input v-model.trim="emailSettingsForm.from_address" type="email" class="form-control" :class="{ 'is-invalid': showEmailError('from_address') }" @blur="touch('email','from_address')">
+                                        <div v-if="showEmailError('from_address')" class="invalid-feedback">{{ emailSettingsErrors.from_address }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Nome do remetente (from_name)</label>
+                                        <input v-model.trim="emailSettingsForm.from_name" class="form-control" @blur="touch('email','from_name')">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info mb-0">
+                                A senha não é exibida por segurança. Se a senha já estiver cadastrada, deixe o campo em branco para manter.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentView === 'users' && isAdmin" class="card">
                         <div class="card-header">
                             <div class="d-flex flex-wrap align-items-center justify-content-between">
                                 <div class="input-group" style="max-width: 420px;">
@@ -734,7 +822,7 @@
                         <div class="card-header">
                             <div class="row">
                                 <div class="col-md-3 mb-2">
-                                    <input v-model.trim="orders.filters.q" class="form-control" placeholder="Busca (nº, cliente, doc)" @input="debouncedFetchOrders()">
+                                    <input v-model.trim="orders.filters.q" class="form-control" placeholder="Busca (nº, cliente, doc, técnico)" @input="debouncedFetchOrders()">
                                 </div>
                                 <div class="col-md-2 mb-2">
                                     <select v-model="orders.filters.status" class="form-control" @change="fetchOrders(1)">
@@ -769,6 +857,7 @@
                                 <tr>
                                     <th>Nº</th>
                                     <th>Cliente</th>
+                                    <th>Técnico</th>
                                     <th>Status</th>
                                     <th>Abertura</th>
                                     <th class="d-none d-md-table-cell">Fechamento</th>
@@ -780,6 +869,7 @@
                                 <tr v-for="o in orders.items" :key="o.id">
                                     <td>{{ o.number }}</td>
                                     <td>{{ o.client ? o.client.name : '' }}</td>
+                                    <td>{{ o.responsible ? o.responsible.name : '-' }}</td>
                                     <td>
                                         <span class="badge" :class="statusBadge(o.status)">{{ statusLabel(o.status) }}</span>
                                     </td>
@@ -788,12 +878,16 @@
                                     <td v-if="isAdmin" class="d-none d-sm-table-cell">R$ {{ formatMoney(o.total_value) }}</td>
                                     <td>
                                         <button class="btn btn-sm btn-info mr-1" @click="viewOrder(o)"><i class="fas fa-eye"></i></button>
-                                        <button v-if="!isClient" class="btn btn-sm btn-warning mr-1" @click="openOrderModal(o)"><i class="fas fa-edit"></i></button>
-                                        <button v-if="!isClient" class="btn btn-sm btn-danger" @click="deleteOrder(o)"><i class="fas fa-trash"></i></button>
+                                        <button v-if="o.status === 'finalizada'" class="btn btn-sm btn-secondary mr-1" @click="downloadOrderPdf(o.id, o.number)"><i class="fas fa-file-pdf"></i></button>
+                                        <button v-if="isAdmin" class="btn btn-sm btn-warning mr-1" @click="openOrderModal(o)"><i class="fas fa-edit"></i></button>
+                                        <button v-if="!isClient && o.status !== 'finalizada' && o.status !== 'cancelada'" class="btn btn-sm btn-success mr-1" @click="openCloseOrderModal(o)">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button v-if="isAdmin" class="btn btn-sm btn-danger" @click="deleteOrder(o)"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                                 <tr v-if="orders.items.length === 0">
-                                    <td :colspan="isAdmin ? 7 : 6" class="text-center text-muted p-4">Nenhuma OS encontrada.</td>
+                                    <td :colspan="isAdmin ? 8 : 7" class="text-center text-muted p-4">Nenhuma OS encontrada.</td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -1030,7 +1124,9 @@
         <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">{{ orderForm.id ? 'Editar OS #' + orderForm.number : 'Nova OS' }}</h5>
+                    <h5 class="modal-title">
+                        {{ orderCloseMode ? ('Fechar OS #' + orderForm.number) : (orderForm.id ? 'Editar OS #' + orderForm.number : 'Nova OS') }}
+                    </h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 </div>
                 <div class="modal-body">
@@ -1038,7 +1134,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label>Cliente</label>
-                                <select v-model="orderForm.client_id" class="form-control" :class="{ 'is-invalid': showOrderError('client_id') }" @blur="touch('order','client_id')" required>
+                                <select v-model="orderForm.client_id" class="form-control" :class="{ 'is-invalid': showOrderError('client_id') }" @blur="touch('order','client_id')" :disabled="orderCloseMode" required>
                                     <option value="" disabled>Selecione</option>
                                     <option v-for="c in clientsAll" :key="'cc'+c.id" :value="c.id">{{ c.name }}</option>
                                 </select>
@@ -1048,7 +1144,7 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label>Status</label>
-                                <select v-model="orderForm.status" class="form-control" required>
+                                <select v-model="orderForm.status" class="form-control" :disabled="orderCloseMode" required>
                                     <option value="aberta">Aberta</option>
                                     <option value="em_andamento">Em andamento</option>
                                     <option value="finalizada">Finalizada</option>
@@ -1059,7 +1155,7 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label>Data de abertura</label>
-                                <input v-model="orderForm.opened_at" type="datetime-local" class="form-control">
+                                <input v-model="orderForm.opened_at" type="datetime-local" class="form-control" :disabled="orderCloseMode">
                             </div>
                         </div>
                         <div class="col-md-2" v-if="isAdmin">
@@ -1071,7 +1167,7 @@
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label>Observações</label>
-                                <textarea v-model.trim="orderForm.notes" class="form-control" rows="2"></textarea>
+                                <textarea v-model.trim="orderForm.notes" class="form-control" rows="2" :disabled="orderCloseMode"></textarea>
                             </div>
                         </div>
                         <div class="col-md-12" v-if="orderForm.id">
@@ -1087,7 +1183,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Responsável (técnico)</label>
-                                <select v-model="orderForm.responsible_user_id" class="form-control">
+                                <select v-model="orderForm.responsible_user_id" class="form-control" :disabled="orderCloseMode">
                                     <option value="">Não definido</option>
                                     <option v-for="u in techniciansAll" :key="'tu'+u.id" :value="u.id">{{ u.name }} ({{ u.email }})</option>
                                 </select>
@@ -1119,7 +1215,7 @@
                             <b>Serviços</b>
                         </div>
                         <div class="card-body p-0">
-                            <div class="p-3">
+                            <div class="p-3" v-if="!orderCloseMode">
                                 <div class="input-group">
                                     <input v-model.trim="orderServiceSearch" class="form-control" placeholder="Buscar serviço cadastrado (nome)" :disabled="servicesAll.length === 0">
                                     <div class="input-group-append">
@@ -1154,12 +1250,13 @@
                                         <td>
                                             <input type="number" min="1" class="form-control form-control-sm"
                                                    v-model.number="orderForm.quantities[sid]"
+                                                   :disabled="orderCloseMode"
                                                    @input="recalcOrderTotal">
                                         </td>
                                         <td v-if="isAdmin">R$ {{ formatMoney(serviceById(sid) ? serviceById(sid).value : 0) }}</td>
                                         <td v-if="isAdmin">R$ {{ formatMoney(lineTotalPreview(sid, serviceById(sid) ? serviceById(sid).value : 0)) }}</td>
                                         <td class="text-right">
-                                            <button class="btn btn-sm btn-danger" @click="removeServiceFromOrder(sid)"><i class="fas fa-times"></i></button>
+                                            <button v-if="!orderCloseMode" class="btn btn-sm btn-danger" @click="removeServiceFromOrder(sid)"><i class="fas fa-times"></i></button>
                                         </td>
                                     </tr>
                                     </tbody>
@@ -1175,9 +1272,9 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button class="btn btn-primary" @click="saveOrder" :disabled="isBusy || orderHasErrors">
-                        <span v-if="isBusy"><i class="fas fa-spinner fa-spin mr-1"></i> Salvando...</span>
-                        <span v-else>Salvar</span>
+                    <button class="btn btn-primary" @click="orderCloseMode ? openSignatureModal() : saveOrder()" :disabled="isBusy || (orderCloseMode ? false : orderHasErrors)">
+                        <span v-if="isBusy"><i class="fas fa-spinner fa-spin mr-1"></i> Processando...</span>
+                        <span v-else>{{ orderCloseMode ? 'Fechar OS' : 'Salvar' }}</span>
                     </button>
                 </div>
             </div>
@@ -1365,15 +1462,18 @@ createApp({
             servicesAll: [],
             techniciansAll: [],
             companyForm: this.emptyCompany(),
+            emailSettingsForm: this.emptyEmailSettings(),
             userForm: this.emptyUser(),
             clientForm: this.emptyClient(),
             serviceForm: this.emptyService(),
             orderForm: this.emptyOrder(),
             orderServiceSearch: '',
+            orderCloseMode: false,
             orderView: { services: [] },
             signatureComponent: null,
             touched: {
                 company: {},
+                email: {},
                 user: {},
                 client: {},
                 service: {},
@@ -1407,16 +1507,22 @@ createApp({
             if (this.currentView === 'clients') return 'Clientes';
             if (this.currentView === 'services') return 'Serviços';
             if (this.currentView === 'company') return 'Empresa';
+            if (this.currentView === 'email') return 'Configuração de Email';
             if (this.currentView === 'users') return 'Usuários';
             if (this.currentView === 'orders') return 'Ordens de Serviço';
             return 'Dashboard';
         },
         breadcrumbs() {
             if (!this.auth.token) return [];
+            const items = this.isAdmin
+                ? [{ text: 'Dashboard', href: '#/dashboard' }]
+                : [{ text: 'Ordens de Serviço', href: '#/orders' }];
 
-            const items = [{ text: 'Dashboard', href: '#/dashboard' }];
-
-            if (this.currentView !== 'dashboard') {
+            if (this.isAdmin && this.currentView !== 'dashboard') {
+                items.push({ text: this.titleForView, href: `#/${this.currentView}` });
+                return items;
+            }
+            if (!this.isAdmin && this.currentView !== 'orders') {
                 items.push({ text: this.titleForView, href: `#/${this.currentView}` });
             }
 
@@ -1502,6 +1608,32 @@ createApp({
         companyHasErrors() {
             return Object.keys(this.companyErrors).length > 0;
         },
+        emailSettingsErrors() {
+            const f = this.emailSettingsForm || {};
+            const errors = {};
+            const enabled = Boolean(f.enabled);
+
+            if (enabled) {
+                if (!String(f.host || '').trim()) errors.host = 'Host é obrigatório.';
+
+                const rawPort = String(f.port || '').trim();
+                const port = rawPort ? parseInt(rawPort, 10) : NaN;
+                if (!rawPort) errors.port = 'Porta é obrigatória.';
+                else if (Number.isNaN(port) || port < 1 || port > 65535) errors.port = 'Porta inválida.';
+
+                const from = String(f.from_address || '').trim();
+                if (!from) errors.from_address = 'Remetente (from_address) é obrigatório.';
+                else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)) errors.from_address = 'Email inválido.';
+            }
+
+            const enc = String(f.encryption || '').trim().toLowerCase();
+            if (enc && enc !== 'tls' && enc !== 'ssl') errors.encryption = 'Criptografia inválida.';
+
+            return errors;
+        },
+        emailSettingsHasErrors() {
+            return Object.keys(this.emailSettingsErrors).length > 0;
+        },
         userErrors() {
             const f = this.userForm || {};
             const errors = {};
@@ -1579,6 +1711,21 @@ createApp({
                 email: '',
             };
         },
+        emptyEmailSettings() {
+            return {
+                id: null,
+                enabled: false,
+                mailer: 'smtp',
+                host: '',
+                port: 587,
+                username: '',
+                password: '',
+                encryption: 'tls',
+                from_address: '',
+                from_name: '',
+                has_password: false,
+            };
+        },
         emptyUser() {
             return {
                 id: null,
@@ -1636,6 +1783,9 @@ createApp({
             if (scope === 'company') {
                 Object.keys(this.companyErrors).forEach((k) => this.touch('company', k));
             }
+            if (scope === 'email') {
+                Object.keys(this.emailSettingsErrors).forEach((k) => this.touch('email', k));
+            }
             if (scope === 'user') {
                 Object.keys(this.userErrors).forEach((k) => this.touch('user', k));
             }
@@ -1651,6 +1801,9 @@ createApp({
         },
         showCompanyError(field) {
             return Boolean(this.touched.company && this.touched.company[field] && this.companyErrors[field]);
+        },
+        showEmailError(field) {
+            return Boolean(this.touched.email && this.touched.email[field] && this.emailSettingsErrors[field]);
         },
         showUserError(field) {
             return Boolean(this.touched.user && this.touched.user[field] && this.userErrors[field]);
@@ -1852,6 +2005,9 @@ createApp({
             $('#signatureModal').modal('hide');
             if (this.isClient) {
                 this.finalizeOrderWithSignature(this.orderForm.id, this.orderForm.number, image);
+            } else if (this.orderCloseMode) {
+                this.setNotice('Assinatura capturada. Fechando OS...');
+                this.saveOrder();
             } else {
                 this.setNotice('Assinatura salva na OS.');
             }
@@ -2007,6 +2163,14 @@ createApp({
                 this.companyForm.state = String(this.companyForm.state || '').toUpperCase();
             });
         },
+        async fetchEmailSettings() {
+            if (!this.isAdmin) return;
+            return await this.withPageLoading(async () => {
+                const resp = await axios.get('/api/email-settings');
+                const data = resp.data || {};
+                this.emailSettingsForm = { ...this.emptyEmailSettings(), ...data, password: '' };
+            });
+        },
         async fetchTechniciansAll() {
             if (!this.isAdmin) return;
             return await this.withPageLoading(async () => {
@@ -2124,6 +2288,50 @@ createApp({
                 await this.fetchCompany();
             } catch (e2) {
                 this.setAlert(this.apiErrorMessage(e2));
+            } finally {
+                this.ui.loading = false;
+            }
+        },
+        async saveEmailSettings() {
+            this.touchAll('email');
+            if (this.emailSettingsHasErrors) {
+                this.setAlert('Verifique os campos da configuração de e-mail.');
+                return;
+            }
+            if (!this.isAdmin) {
+                this.setAlert('Somente administrador pode alterar as configurações de e-mail.');
+                return;
+            }
+
+            this.ui.loading = true;
+            try {
+                const f = this.emailSettingsForm || {};
+                const enabled = Boolean(f.enabled);
+                const host = String(f.host || '').trim();
+                const rawPort = String(f.port || '').trim();
+                const port = rawPort ? parseInt(rawPort, 10) : null;
+                const username = String(f.username || '').trim();
+                const encryption = String(f.encryption || '').trim();
+                const from = String(f.from_address || '').trim();
+                const fromName = String(f.from_name || '').trim();
+
+                const payload = {
+                    enabled,
+                    mailer: 'smtp',
+                    host: host || null,
+                    port: port,
+                    username: username || null,
+                    password: String(f.password || ''),
+                    encryption: encryption || null,
+                    from_address: from || null,
+                    from_name: fromName || null,
+                };
+                const resp = await axios.put('/api/email-settings', payload);
+                const data = resp.data || {};
+                this.emailSettingsForm = { ...this.emptyEmailSettings(), ...data, password: '' };
+                this.setNotice('Configuração de e-mail salva.');
+            } catch (e) {
+                this.setAlert(this.apiErrorMessage(e));
             } finally {
                 this.ui.loading = false;
             }
@@ -2352,12 +2560,16 @@ createApp({
 
             this.openSignatureModal();
         },
-        openOrderModal(order = null) {
+        openCloseOrderModal(order) {
+            this.openOrderModal(order, true);
+        },
+        openOrderModal(order = null, closeMode = false) {
             this.ui.modalError = '';
             this.touched.order = {};
             this.orderForm = this.emptyOrder();
             this.signatureComponent = null;
             this.orderServiceSearch = '';
+            this.orderCloseMode = Boolean(closeMode);
 
             if (order) {
                 this.orderForm.id = order.id;
@@ -2372,6 +2584,7 @@ createApp({
                 this.orderForm.signature_image = order.signature_image || '';
             } else {
                 this.orderForm.opened_at = this.toDatetimeLocal(new Date().toISOString());
+                this.orderCloseMode = false;
             }
 
             this.orderForm.quantities = {};
@@ -2451,7 +2664,9 @@ createApp({
 
                 $('#orderModal').modal('hide');
                 await this.fetchOrders(this.orders.page);
-                await this.fetchDashboard();
+                if (this.isAdmin) {
+                    await this.fetchDashboard();
+                }
             } catch (e) {
                 this.setModalError(this.apiErrorMessage(e));
             } finally {
@@ -2481,7 +2696,9 @@ createApp({
             try {
                 await axios.put(`/api/orders/${orderId}`, { status: 'finalizada', signature_image: image });
                 await this.fetchOrders(this.orders.page);
-                await this.fetchDashboard();
+                if (this.isAdmin) {
+                    await this.fetchDashboard();
+                }
                 await this.downloadOrderPdf(orderId, orderNumber);
             } catch (e) {
                 this.setAlert(this.apiErrorMessage(e));
@@ -2495,7 +2712,9 @@ createApp({
                 await axios.delete(`/api/orders/${order.id}`);
                 this.setNotice('OS excluída.');
                 await this.fetchOrders(this.orders.page);
-                await this.fetchDashboard();
+                if (this.isAdmin) {
+                    await this.fetchDashboard();
+                }
             } catch (e) {
                 this.setAlert(this.apiErrorMessage(e));
             }
@@ -2510,37 +2729,38 @@ createApp({
             }
         },
         setViewFromHash() {
-            const h = (location.hash || '#/dashboard').replace('#/', '');
-            if (['dashboard', 'clients', 'services', 'orders', 'company', 'users'].includes(h)) {
-                if (this.isClient && (h === 'clients' || h === 'services' || h === 'company' || h === 'users')) {
+            const defaultHash = this.isAdmin ? '#/dashboard' : '#/orders';
+            const h = (location.hash || defaultHash).replace('#/', '');
+            if (['dashboard', 'clients', 'services', 'orders', 'company', 'email', 'users'].includes(h)) {
+                if (!this.isAdmin && h !== 'orders') {
                     this.currentView = 'orders';
                     return;
                 }
-                if (!this.isAdmin && (h === 'company' || h === 'users')) {
-                    this.currentView = 'dashboard';
-                    return;
-                }
                 this.currentView = h;
+                if (h === 'email') {
+                    this.fetchEmailSettings();
+                }
                 if (h === 'users') {
                     this.fetchUsers(1);
                 }
             } else {
-                this.currentView = 'dashboard';
+                this.currentView = this.isAdmin ? 'dashboard' : 'orders';
             }
         },
         async bootstrapData() {
             await this.loadMe();
             await this.fetchCompany();
-            await this.fetchDashboard();
             await this.fetchOrders(1);
             if (this.isAdmin) {
+                await this.fetchDashboard();
                 await this.fetchTechniciansAll();
-            }
-            if (!this.isClient) {
                 await this.fetchClientsAll();
                 await this.fetchServicesAll();
                 await this.fetchClients(1);
                 await this.fetchServices(1);
+            } else if (this.isTechnician) {
+                await this.fetchClientsAll();
+                await this.fetchServicesAll();
             }
             this.setViewFromHash();
         }

@@ -95,7 +95,7 @@ class OrderController extends Controller
                 'created_at',
                 'updated_at',
             ])
-            ->with(['client']);
+            ->with(['client', 'responsible']);
 
         if ($role === 'cliente') {
             $clientId = (int) ($user?->client_id ?? 0);
@@ -136,6 +136,10 @@ class OrderController extends Controller
                     ->orWhereHas('client', function ($client) use ($q) {
                         $client->where('name', 'like', "%{$q}%")
                             ->orWhere('document', 'like', "%{$q}%");
+                    })
+                    ->orWhereHas('responsible', function ($responsible) use ($q) {
+                        $responsible->where('name', 'like', "%{$q}%")
+                            ->orWhere('email', 'like', "%{$q}%");
                     });
             });
         }
@@ -221,6 +225,9 @@ class OrderController extends Controller
         if ($role === 'admin' && $order->status === Order::STATUS_FINALIZADA && $order->signature_image && $order->solution) {
             app(OrderPdfService::class)->generateAndStore($order);
         }
+        if ($order->status === Order::STATUS_FINALIZADA && $order->signature_image && $order->solution) {
+            app(OrderPdfService::class)->sendClosedEmails($order);
+        }
 
         return response()->json($this->sanitizeOrderForRole($order, $role), 201);
     }
@@ -243,6 +250,7 @@ class OrderController extends Controller
 
         $user = $request->user();
         $role = $user?->role ?: 'admin';
+        $originalStatus = $order->status;
 
         $data = $request->validated();
         if ($role === 'cliente') {
@@ -338,6 +346,9 @@ class OrderController extends Controller
 
         if ($role === 'admin' && $updated->status === Order::STATUS_FINALIZADA && $updated->signature_image && $updated->solution) {
             app(OrderPdfService::class)->generateAndStore($updated);
+        }
+        if ($originalStatus !== Order::STATUS_FINALIZADA && $updated->status === Order::STATUS_FINALIZADA && $updated->signature_image && $updated->solution) {
+            app(OrderPdfService::class)->sendClosedEmails($updated);
         }
 
         return response()->json($this->sanitizeOrderForRole($updated, $role));

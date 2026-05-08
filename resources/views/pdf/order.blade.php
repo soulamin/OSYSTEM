@@ -5,163 +5,124 @@
     <title>OS #{{ $order->number }}</title>
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #111; }
-        .row { width: 100%; }
-        .title { font-size: 18px; font-weight: bold; margin-bottom: 6px; }
-        .muted { color: #666; }
-        .box { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
-        .section-title { font-weight: bold; margin-bottom: 6px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 6px; vertical-align: top; }
-        th { background: #f3f3f3; text-align: left; }
-        .right { text-align: right; }
-        .sig { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        .sig img { max-width: 100%; max-height: 160px; }
+        .header { border: 1px solid #0b2f6a; background: #0b3d91; color: #fff; padding: 14px 16px; margin-bottom: 12px; }
+        .header-title { font-size: 18px; font-weight: bold; letter-spacing: .3px; }
+        .header-sub { font-size: 12px; opacity: .95; margin-top: 2px; }
+        .badge-dot { display: inline-block; width: 10px; height: 10px; border-radius: 999px; background: #1ea7ff; margin-right: 8px; vertical-align: middle; }
+        .box { border: 1px solid #d9d9d9; padding: 10px 12px; margin-bottom: 10px; }
+        .box-title { font-weight: bold; margin-bottom: 6px; }
+        .muted { color: #666; }
+        .field { width: 100%; }
+        .field td { padding: 4px 0; vertical-align: top; }
+        .label { width: 90px; color: #333; font-weight: bold; }
+        .value { border-bottom: 1px solid #bbb; padding-bottom: 2px; }
+        .textblock { min-height: 70px; border: 1px solid #e1e1e1; padding: 8px; }
+        .textblock.small { min-height: 56px; }
+        .sign-grid td { width: 50%; vertical-align: top; }
+        .sign-box { border: 1px solid #e1e1e1; padding: 10px; min-height: 110px; }
+        .sign-title { font-weight: bold; margin-bottom: 8px; }
+        .sign-line { border-top: 1px solid #111; margin-top: 70px; padding-top: 4px; color: #333; }
+        .sign-img { text-align: center; }
+        .sign-img img { max-width: 100%; max-height: 140px; }
     </style>
 </head>
 <body>
-    <div class="title">Ordem de Serviço #{{ $order->number }}</div>
-    <div class="muted">
-        Abertura: {{ optional($order->opened_at)->format('d/m/Y H:i') }}
-        @if($order->closed_at)
-            | Fechamento: {{ optional($order->closed_at)->format('d/m/Y H:i') }}
-        @endif
-        | Status: {{ $order->status }}
+    @php
+        $safeNumber = str_pad((string) $order->number, 6, '0', STR_PAD_LEFT);
+        $clientName = $order->client?->name ?: '';
+        $clientPhone = $order->client?->phone ?: '';
+        $clientEmail = $order->client?->email ?: '';
+        $technicianName = $order->responsible?->name ?: '';
+        $problemText = trim((string) ($order->notes ?? ''));
+        $solutionText = trim((string) ($order->solution ?? ''));
+        $finalDate = $order->closed_at ? optional($order->closed_at)->format('d/m/Y') : '';
+    @endphp
+
+    <div class="header">
+        <div class="header-title"><span class="badge-dot"></span>ORDEM DE SERVIÇO</div>
+        <div class="header-sub">Nº da Ordem: <b>{{ $safeNumber }}</b></div>
     </div>
 
-    @if(!empty($company) && ($company->name || $company->cnpj || $company->logo_image))
-        <div class="box">
-            <div class="section-title">Empresa prestadora</div>
-            <table>
-                <tr>
-                    <td style="width: 28%; text-align: center;">
-                        @if($company->logo_image)
-                            <img src="{{ $company->logo_image }}" alt="Logo" style="max-width: 140px; max-height: 80px;">
-                        @else
-                            <div class="muted">Sem logo</div>
-                        @endif
-                    </td>
-                    <td>
-                        <div><b>{{ $company->name ?? '-' }}</b></div>
-                        <div>CNPJ: {{ $company->cnpj ?? '-' }}</div>
-                        <div class="muted" style="margin-top: 4px;">
-                            @if($company->street || $company->number)
-                                {{ $company->street ?? '-' }}, {{ $company->number ?? '-' }}
-                                @if($company->complement) - {{ $company->complement }} @endif
-                                <br>
-                                {{ $company->district ?? '-' }} - {{ $company->city ?? '-' }}/{{ $company->state ?? '-' }}
-                                <br>
-                                CEP: {{ $company->zip ?? '-' }}
-                            @else
-                                Endereço não informado.
-                            @endif
-                        </div>
-                    </td>
-                </tr>
-            </table>
-        </div>
-    @endif
+    <div class="box">
+        <div class="box-title">Cliente</div>
+        <table class="field">
+            <tr>
+                <td class="label">Nome:</td>
+                <td class="value">{{ $clientName ?: ' ' }}</td>
+            </tr>
+            <tr>
+                <td class="label">Telefone:</td>
+                <td class="value">{{ $clientPhone ?: ' ' }}</td>
+            </tr>
+            <tr>
+                <td class="label">Email:</td>
+                <td class="value">{{ $clientEmail ?: ' ' }}</td>
+            </tr>
+        </table>
+    </div>
 
     <div class="box">
-        <div class="section-title">Cliente / Solicitante</div>
-        <table>
+        <div class="box-title">Descrição do Problema</div>
+        <div class="textblock">@if($problemText !== ''){!! nl2br(e($problemText)) !!}@else&nbsp;@endif</div>
+    </div>
+
+    <div class="box">
+        <div class="box-title">Solução Realizada</div>
+        <div class="textblock">@if($solutionText !== ''){!! nl2br(e($solutionText)) !!}@else&nbsp;@endif</div>
+    </div>
+
+    <div class="box">
+        <div class="box-title">Data do Atendimento (Finalizado)</div>
+        <table class="field">
             <tr>
-                <th style="width: 28%;">Nome</th>
-                <td>{{ $order->client->name }}</td>
+                <td class="label">Data:</td>
+                <td class="value">{{ $finalDate ?: ' ' }}</td>
             </tr>
+        </table>
+        <div class="muted" style="margin-top: 6px;">
+            Abertura: {{ optional($order->opened_at)->format('d/m/Y H:i') }}
+            @if($order->closed_at)
+                | Fechamento: {{ optional($order->closed_at)->format('d/m/Y H:i') }}
+            @endif
+            | Status: {{ $order->status }}
+        </div>
+    </div>
+
+    <div class="box">
+        <div class="box-title">Assinaturas</div>
+        <table class="sign-grid">
             <tr>
-                <th>CPF/CNPJ</th>
-                <td>{{ $order->client->document }}</td>
-            </tr>
-            <tr>
-                <th>Telefone</th>
-                <td>{{ $order->client->phone }}</td>
-            </tr>
-            <tr>
-                <th>Email</th>
-                <td>{{ $order->client->email ?? '-' }}</td>
-            </tr>
-            <tr>
-                <th>Endereço</th>
-                <td>
-                    {{ $order->client->street }}, {{ $order->client->number }}
-                    @if($order->client->complement) - {{ $order->client->complement }} @endif
-                    <br>
-                    {{ $order->client->district }} - {{ $order->client->city }}/{{ $order->client->state }}
-                    <br>
-                    CEP: {{ $order->client->zip }}
+                <td style="padding-right: 8px;">
+                    <div class="sign-box">
+                        <div class="sign-title">Técnico Responsável</div>
+                        <div class="muted">{{ $technicianName ?: '-' }}</div>
+                        <div class="sign-line">Assinatura</div>
+                    </div>
+                </td>
+                <td style="padding-left: 8px;">
+                    <div class="sign-box">
+                        <div class="sign-title">Cliente</div>
+                        @if($order->signature_image)
+                            <div class="sign-img">
+                                <img src="{{ $order->signature_image }}" alt="Assinatura do Cliente">
+                            </div>
+                            @if($order->signature_signed_at)
+                                <div class="muted" style="margin-top: 6px;">Assinado em {{ $order->signature_signed_at->format('d/m/Y H:i') }}</div>
+                            @endif
+                        @else
+                            <div class="muted">Sem assinatura.</div>
+                        @endif
+                        <div class="sign-line">Assinatura</div>
+                    </div>
                 </td>
             </tr>
         </table>
     </div>
 
     <div class="box">
-        <div class="section-title">Responsável pelo atendimento</div>
-        <div>{{ optional($order->responsible)->name ?? '-' }} ({{ optional($order->responsible)->email ?? '-' }})</div>
-    </div>
-
-    <div class="box">
-        <div class="section-title">Descrição da ordem</div>
-        <div>{{ $order->notes ?? '-' }}</div>
-    </div>
-
-    @if(!empty($order->solution))
-        <div class="box">
-            <div class="section-title">Solução</div>
-            <div>{{ $order->solution }}</div>
-        </div>
-    @endif
-
-    <div class="box">
-        <div class="section-title">Serviços</div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Serviço</th>
-                    <th style="width: 70px;" class="right">Qtd</th>
-                    @if(empty($hideValues))
-                        <th style="width: 110px;" class="right">Valor unit.</th>
-                        <th style="width: 110px;" class="right">Subtotal</th>
-                    @endif
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($order->services as $service)
-                    @php
-                        $qty = (int) $service->pivot->quantity;
-                        $unit = (float) $service->pivot->unit_value;
-                        $sub = $qty * $unit;
-                    @endphp
-                    <tr>
-                        <td>{{ $service->name }}</td>
-                        <td class="right">{{ $qty }}</td>
-                        @if(empty($hideValues))
-                            <td class="right">R$ {{ number_format($unit, 2, ',', '.') }}</td>
-                            <td class="right">R$ {{ number_format($sub, 2, ',', '.') }}</td>
-                        @endif
-                    </tr>
-                @endforeach
-                @if(empty($hideValues))
-                    <tr>
-                        <th colspan="3" class="right">Total</th>
-                        <th class="right">R$ {{ number_format((float) $order->total_value, 2, ',', '.') }}</th>
-                    </tr>
-                @endif
-            </tbody>
-        </table>
-    </div>
-
-    <div class="box">
-        <div class="section-title">Assinatura do solicitante</div>
-        <div class="sig">
-            @if($order->signature_image)
-                <img src="{{ $order->signature_image }}" alt="Assinatura">
-                @if($order->signature_signed_at)
-                    <div class="muted" style="margin-top: 6px;">Assinado em {{ $order->signature_signed_at->format('d/m/Y H:i') }}</div>
-                @endif
-            @else
-                <div class="muted">Sem assinatura.</div>
-            @endif
-        </div>
+        <div class="box-title">Observações</div>
+        <div class="textblock small">&nbsp;</div>
     </div>
 </body>
 </html>

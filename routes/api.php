@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\EmailSettingController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\UserController;
@@ -23,6 +24,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('company', [CompanyController::class, 'show']);
     Route::put('company', [CompanyController::class, 'update']);
+
+    Route::get('email-settings', [EmailSettingController::class, 'show']);
+    Route::put('email-settings', [EmailSettingController::class, 'update']);
 
     Route::apiResource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
 
