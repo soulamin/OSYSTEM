@@ -191,10 +191,12 @@
         .os-login-title{
             text-align: center;
             letter-spacing: .24em;
-            font-weight: 700;
-            color: rgba(106,166,255,.95);
+            font-weight: 800;
+            color: rgba(253, 253, 253, 0.95);
             text-shadow: 0 0 18px rgba(106,166,255,.25);
             margin-bottom: 22px;
+            font-size: 2rem;
+
         }
 
         .os-login-field{
@@ -261,8 +263,8 @@
             <span class="os-corner tr"></span>
             <span class="os-corner bl"></span>
             <span class="os-corner br"></span>
-
-            <div class="os-login-title">LOGIN</div>
+            
+             <div class="os-login-title">OSystem</div>
 
             <div v-if="ui.alert" class="alert alert-danger" role="alert" style="background: rgba(255,23,68,.10); border-color: rgba(255,23,68,.35); color: rgba(255,255,255,.92);">
                 {{ ui.alert }}
@@ -286,7 +288,7 @@
             </form>
 
             <div class="os-login-hint">
-                test@example.com / password
+                ©2026 Grupo Orix. 
             </div>
         </div>
     </div>
@@ -311,7 +313,7 @@
 
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <a href="#/dashboard" class="brand-link">
-                <img v-if="company && company.logo_image" :src="company.logo_image" alt="Logo" class="brand-image img-circle elevation-3" style="opacity: .9">
+                <img v-if="company && company.logo_image" :src="company.logo_image" alt="Logo" class="brand-image " style="opacity: .9">
                 <span class="brand-text font-weight-light ml-2"><b>OS</b>YSTEM</span>
             </a>
 
