@@ -358,6 +358,12 @@
                             </a>
                         </li>
                         <li class="nav-item" v-if="isAdmin">
+                            <a href="#/backup" class="nav-link" :class="{ active: currentView === 'backup' }">
+                                <i class="nav-icon fas fa-database"></i>
+                                <p>Backup BD</p>
+                            </a>
+                        </li>
+                        <li class="nav-item" v-if="isAdmin">
                             <a href="#/users" class="nav-link" :class="{ active: currentView === 'users' }">
                                 <i class="nav-icon fas fa-user-shield"></i>
                                 <p>Usuários</p>
@@ -737,10 +743,68 @@
                                         <input v-model.trim="emailSettingsForm.from_name" class="form-control" @blur="touch('email','from_name')">
                                     </div>
                                 </div>
+                                <div class="col-12">
+                                    <div class="form-group mb-2">
+                                        <label>Corpo do e-mail de abertura (HTML)</label>
+                                        <textarea
+                                            v-model="emailSettingsForm.body_html_opened"
+                                            class="form-control"
+                                            rows="8"
+                                            style="font-family: Consolas, monospace;"
+                                            placeholder="<p>Uma nova OS <strong>#@{{numero_os}}</strong> foi aberta para @{{nome_tecnico}}.</p>"
+                                            @blur="touch('email','body_html_opened')"
+                                        ></textarea>
+                                        <small class="form-text text-muted">
+                                            Usado quando a OS for aberta. Destinatarios: empresa e tecnico.
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-group mb-2">
+                                        <label>Corpo do e-mail de fechamento (HTML)</label>
+                                        <textarea
+                                            v-model="emailSettingsForm.body_html_closed"
+                                            class="form-control"
+                                            rows="8"
+                                            style="font-family: Consolas, monospace;"
+                                            placeholder="<p>Ola @{{nome_cliente}}, sua OS <strong>#@{{numero_os}}</strong> foi finalizada.</p>"
+                                            @blur="touch('email','body_html_closed')"
+                                        ></textarea>
+                                        <small class="form-text text-muted">
+                                            Usado quando a OS for finalizada. Destinatarios: empresa, cliente e tecnico.
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-group mb-2">
+                                        <small class="form-text text-muted">
+                                            Placeholders disponiveis: @{{numero_os}}, @{{status_os}}, @{{nome_empresa}}, @{{email_empresa}}, @{{telefone_empresa}}, @{{nome_cliente}}, @{{email_cliente}}, @{{telefone_cliente}}, @{{nome_tecnico}}, @{{data_abertura}}, @{{data_fechamento}}.
+                                        </small>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="alert alert-info mb-0">
                                 A senha não é exibida por segurança. Se a senha já estiver cadastrada, deixe o campo em branco para manter.
+                                Se algum dos campos HTML ficar vazio, o sistema usa um modelo padrao automaticamente.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentView === 'backup' && isAdmin" class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <b>Backup do banco de dados</b>
+                                <div class="text-muted" style="font-size: .9rem;">Gera um dump completo do banco atual em arquivo para download</div>
+                            </div>
+                            <button class="btn btn-primary" @click="downloadDatabaseBackup" :disabled="isBusy">
+                                <span v-if="isBusy"><i class="fas fa-spinner fa-spin mr-1"></i> Gerando...</span>
+                                <span v-else><i class="fas fa-download mr-1"></i> Gerar Backup</span>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info mb-0">
+                                Esta função está disponível somente para administrador e gera um arquivo dump completo do banco configurado no sistema.
                             </div>
                         </div>
                     </div>
@@ -1121,7 +1185,7 @@
     </div>
 
     <div class="modal fade" id="orderModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-dialog modal-xl" :class="{ 'modal-dialog-scrollable': orderCloseMode }" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
@@ -1129,12 +1193,12 @@
                     </h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" :style="orderCloseMode ? 'max-height: calc(100vh - 210px); overflow-y: auto;' : ''">
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label>Cliente</label>
-                                <select v-model="orderForm.client_id" class="form-control" :class="{ 'is-invalid': showOrderError('client_id') }" @blur="touch('order','client_id')" :disabled="orderCloseMode" required>
+                                <select v-model="orderForm.client_id" class="form-control" :class="{ 'is-invalid': showOrderError('client_id') }" @change="syncOrderClientFieldsFromSelected()" @blur="touch('order','client_id')" :disabled="orderCloseMode" required>
                                     <option value="" disabled>Selecione</option>
                                     <option v-for="c in clientsAll" :key="'cc'+c.id" :value="c.id">{{ c.name }}</option>
                                 </select>
@@ -1175,6 +1239,22 @@
                                 <label>Solução</label>
                                 <textarea v-model.trim="orderForm.solution" class="form-control" rows="2" :class="{ 'is-invalid': showOrderError('solution') }" @blur="touch('order','solution')" placeholder="Obrigatório ao finalizar a OS"></textarea>
                                 <div v-if="showOrderError('solution')" class="invalid-feedback">{{ orderErrors.solution }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6" v-if="orderForm.id">
+                            <div class="form-group">
+                                <label>Nome cliente</label>
+                                <input v-model.trim="orderForm.client_name" class="form-control" :class="{ 'is-invalid': showOrderError('client_name') }" @blur="touch('order','client_name')" placeholder="Obrigatório ao finalizar a OS">
+                                <div v-if="showOrderError('client_name')" class="invalid-feedback">{{ orderErrors.client_name }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6" v-if="orderForm.id">
+                            <div class="form-group">
+                                <label>Documento</label>
+                                <input :value="orderForm.client_document" class="form-control" :class="{ 'is-invalid': showOrderError('client_document') }"
+                                       @input="orderForm.client_document = maskCpfCnpj($event.target.value); touch('order','client_document')"
+                                       @blur="touch('order','client_document')" placeholder="Obrigatório ao finalizar a OS">
+                                <div v-if="showOrderError('client_document')" class="invalid-feedback">{{ orderErrors.client_document }}</div>
                             </div>
                         </div>
                     </div>
@@ -1508,6 +1588,7 @@ createApp({
             if (this.currentView === 'services') return 'Serviços';
             if (this.currentView === 'company') return 'Empresa';
             if (this.currentView === 'email') return 'Configuração de Email';
+            if (this.currentView === 'backup') return 'Backup do Banco';
             if (this.currentView === 'users') return 'Usuários';
             if (this.currentView === 'orders') return 'Ordens de Serviço';
             return 'Dashboard';
@@ -1665,6 +1746,11 @@ createApp({
             if (!f.selected || f.selected.length === 0) errors.services = 'Adicione ao menos um serviço.';
             if (f.status === 'finalizada' && !String(f.signature_image || '').trim()) errors.signature_image = 'Assinatura é obrigatória para finalizar a OS.';
             if (f.status === 'finalizada' && !String(f.solution || '').trim()) errors.solution = 'Solução é obrigatória para finalizar a OS.';
+            if (f.status === 'finalizada' && !String(f.client_name || '').trim()) errors.client_name = 'Nome cliente é obrigatório para finalizar a OS.';
+
+            const clientDocumentDigits = this.digitsOnly(f.client_document || '');
+            if (f.status === 'finalizada' && !clientDocumentDigits) errors.client_document = 'Documento é obrigatório para finalizar a OS.';
+            else if (clientDocumentDigits && !/^\d{11}$/.test(clientDocumentDigits) && !/^\d{14}$/.test(clientDocumentDigits)) errors.client_document = 'Documento inválido.';
 
             return errors;
         },
@@ -1723,6 +1809,9 @@ createApp({
                 encryption: 'tls',
                 from_address: '',
                 from_name: '',
+                body_html: '',
+                body_html_opened: '',
+                body_html_closed: '',
                 has_password: false,
             };
         },
@@ -1760,6 +1849,8 @@ createApp({
                 id: null,
                 number: null,
                 client_id: '',
+                client_name: '',
+                client_document: '',
                 responsible_user_id: '',
                 status: 'aberta',
                 original_status: null,
@@ -2314,6 +2405,9 @@ createApp({
                 const encryption = String(f.encryption || '').trim();
                 const from = String(f.from_address || '').trim();
                 const fromName = String(f.from_name || '').trim();
+                const bodyHtml = String(f.body_html || '');
+                const bodyHtmlOpened = String(f.body_html_opened || '');
+                const bodyHtmlClosed = String(f.body_html_closed || '');
 
                 const payload = {
                     enabled,
@@ -2325,6 +2419,9 @@ createApp({
                     encryption: encryption || null,
                     from_address: from || null,
                     from_name: fromName || null,
+                    body_html: bodyHtml.trim() ? bodyHtml : null,
+                    body_html_opened: bodyHtmlOpened.trim() ? bodyHtmlOpened : null,
+                    body_html_closed: bodyHtmlClosed.trim() ? bodyHtmlClosed : null,
                 };
                 const resp = await axios.put('/api/email-settings', payload);
                 const data = resp.data || {};
@@ -2509,6 +2606,22 @@ createApp({
             const sid = Number(id);
             return (this.servicesAll || []).find((s) => Number(s.id) === sid) || null;
         },
+        clientById(id) {
+            const cid = Number(id);
+            return (this.clientsAll || []).find((c) => Number(c.id) === cid) || null;
+        },
+        syncOrderClientFieldsFromSelected(force = false) {
+            const client = this.clientById(this.orderForm.client_id);
+            if (!client) return;
+
+            if (force || !String(this.orderForm.client_name || '').trim()) {
+                this.orderForm.client_name = String(client.name || '').trim();
+            }
+
+            if (force || !String(this.orderForm.client_document || '').trim()) {
+                this.orderForm.client_document = this.maskCpfCnpj(client.document || '');
+            }
+        },
         addServiceToOrder(service) {
             if (!service || !service.id) return;
             const sid = Number(service.id);
@@ -2575,6 +2688,8 @@ createApp({
                 this.orderForm.id = order.id;
                 this.orderForm.number = order.number;
                 this.orderForm.client_id = order.client_id;
+                this.orderForm.client_name = order.client_name || '';
+                this.orderForm.client_document = this.maskCpfCnpj(order.client_document || '');
                 this.orderForm.responsible_user_id = order.responsible_user_id || '';
                 this.orderForm.status = order.status;
                 this.orderForm.original_status = order.status;
@@ -2586,6 +2701,8 @@ createApp({
                 this.orderForm.opened_at = this.toDatetimeLocal(new Date().toISOString());
                 this.orderCloseMode = false;
             }
+
+            this.syncOrderClientFieldsFromSelected();
 
             this.orderForm.quantities = {};
             this.orderForm.selected = [];
@@ -2607,6 +2724,9 @@ createApp({
                     this.orderForm.signature_image = full.signature_image || this.orderForm.signature_image || '';
                     this.orderForm.responsible_user_id = full.responsible_user_id || this.orderForm.responsible_user_id || '';
                     this.orderForm.solution = full.solution || this.orderForm.solution || '';
+                    this.orderForm.client_name = full.client_name || this.orderForm.client_name || '';
+                    this.orderForm.client_document = this.maskCpfCnpj(full.client_document || this.orderForm.client_document || '');
+                    this.syncOrderClientFieldsFromSelected();
                     this.recalcOrderTotal();
                 });
             }
@@ -2637,6 +2757,8 @@ createApp({
 
                 const payload = {
                     client_id: this.orderForm.client_id,
+                    client_name: this.orderForm.client_name || null,
+                    client_document: this.orderForm.client_document || null,
                     status: this.orderForm.status,
                     opened_at: this.orderForm.opened_at ? new Date(this.orderForm.opened_at).toISOString() : null,
                     notes: this.orderForm.notes || null,
@@ -2691,6 +2813,33 @@ createApp({
                 this.setAlert('Não foi possível baixar o PDF.');
             }
         },
+        async downloadDatabaseBackup() {
+            if (!this.isAdmin) {
+                this.setAlert('Somente administrador pode gerar backup.');
+                return;
+            }
+
+            this.ui.loading = true;
+            try {
+                const resp = await axios.get('/api/database-backup', { responseType: 'blob' });
+                const blob = new Blob([resp.data], { type: 'application/octet-stream' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const disposition = String(resp.headers['content-disposition'] || '');
+                const match = disposition.match(/filename="?([^"]+)"?/i);
+                a.href = url;
+                a.download = match && match[1] ? match[1] : `backup-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.sql`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                this.setNotice('Backup gerado com sucesso.');
+            } catch (e) {
+                this.setAlert(this.apiErrorMessage(e));
+            } finally {
+                this.ui.loading = false;
+            }
+        },
         async finalizeOrderWithSignature(orderId, orderNumber, image) {
             this.ui.loading = true;
             try {
@@ -2731,7 +2880,7 @@ createApp({
         setViewFromHash() {
             const defaultHash = this.isAdmin ? '#/dashboard' : '#/orders';
             const h = (location.hash || defaultHash).replace('#/', '');
-            if (['dashboard', 'clients', 'services', 'orders', 'company', 'email', 'users'].includes(h)) {
+            if (['dashboard', 'clients', 'services', 'orders', 'company', 'email', 'backup', 'users'].includes(h)) {
                 if (!this.isAdmin && h !== 'orders') {
                     this.currentView = 'orders';
                     return;

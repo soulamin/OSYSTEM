@@ -15,6 +15,8 @@ class StoreOrderRequest extends FormRequest
     {
         return [
             'client_id' => ['required', 'integer', 'exists:clients,id'],
+            'client_name' => ['nullable', 'string', 'max:150'],
+            'client_document' => ['nullable', 'string', 'max:30'],
             'responsible_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'status' => ['nullable', 'in:aberta,em_andamento,finalizada,cancelada'],
             'opened_at' => ['nullable', 'date'],
@@ -33,6 +35,8 @@ class StoreOrderRequest extends FormRequest
             $status = (string) $this->input('status', '');
             $signature = (string) $this->input('signature_image', '');
             $solution = (string) $this->input('solution', '');
+            $clientName = trim((string) $this->input('client_name', ''));
+            $clientDocument = preg_replace('/\D+/', '', (string) $this->input('client_document', ''));
 
             if ($status === 'finalizada' && trim($signature) === '') {
                 $validator->errors()->add('signature_image', 'Assinatura é obrigatória para finalizar a OS.');
@@ -40,6 +44,18 @@ class StoreOrderRequest extends FormRequest
 
             if ($status === 'finalizada' && trim($solution) === '') {
                 $validator->errors()->add('solution', 'Solução é obrigatória para finalizar a OS.');
+            }
+
+            if ($status === 'finalizada' && $clientName === '') {
+                $validator->errors()->add('client_name', 'Nome do cliente é obrigatório para finalizar a OS.');
+            }
+
+            if ($status === 'finalizada' && $clientDocument === '') {
+                $validator->errors()->add('client_document', 'Documento é obrigatório para finalizar a OS.');
+            }
+
+            if ($clientDocument !== '' && ! preg_match('/^\d{11}$|^\d{14}$/', $clientDocument)) {
+                $validator->errors()->add('client_document', 'Documento inválido.');
             }
 
             if (trim($signature) !== '' && ! str_starts_with($signature, 'data:image/')) {

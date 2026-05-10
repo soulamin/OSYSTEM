@@ -16,6 +16,8 @@ class Order extends Model
     protected $fillable = [
         'number',
         'client_id',
+        'client_name',
+        'client_document',
         'responsible_user_id',
         'status',
         'opened_at',

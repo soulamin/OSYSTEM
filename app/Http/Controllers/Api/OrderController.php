@@ -179,6 +179,8 @@ class OrderController extends Controller
             $order = Order::create([
                 'number' => $nextNumber,
                 'client_id' => $data['client_id'],
+                'client_name' => $data['client_name'] ?? null,
+                'client_document' => $data['client_document'] ?? null,
                 'responsible_user_id' => $responsibleUserId,
                 'status' => $status,
                 'opened_at' => $openedAt,
@@ -227,6 +229,8 @@ class OrderController extends Controller
         }
         if ($order->status === Order::STATUS_FINALIZADA && $order->signature_image && $order->solution) {
             app(OrderPdfService::class)->sendClosedEmails($order);
+        } elseif (in_array($order->status, [Order::STATUS_ABERTA, Order::STATUS_EM_ANDAMENTO], true)) {
+            app(OrderPdfService::class)->sendOpenedEmails($order);
         }
 
         return response()->json($this->sanitizeOrderForRole($order, $role), 201);
@@ -263,6 +267,14 @@ class OrderController extends Controller
 
             if (array_key_exists('client_id', $data)) {
                 $order->client_id = $data['client_id'];
+            }
+
+            if (array_key_exists('client_name', $data)) {
+                $order->client_name = $data['client_name'];
+            }
+
+            if (array_key_exists('client_document', $data)) {
+                $order->client_document = $data['client_document'];
             }
 
             if (array_key_exists('opened_at', $data)) {
@@ -349,6 +361,11 @@ class OrderController extends Controller
         }
         if ($originalStatus !== Order::STATUS_FINALIZADA && $updated->status === Order::STATUS_FINALIZADA && $updated->signature_image && $updated->solution) {
             app(OrderPdfService::class)->sendClosedEmails($updated);
+        } elseif (
+            ! in_array($originalStatus, [Order::STATUS_ABERTA, Order::STATUS_EM_ANDAMENTO], true)
+            && in_array($updated->status, [Order::STATUS_ABERTA, Order::STATUS_EM_ANDAMENTO], true)
+        ) {
+            app(OrderPdfService::class)->sendOpenedEmails($updated);
         }
 
         return response()->json($this->sanitizeOrderForRole($updated, $role));

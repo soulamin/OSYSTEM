@@ -26,6 +26,15 @@ class UpdateEmailSettingRequest extends FormRequest
             'encryption' => $encryption !== null && trim((string) $encryption) !== '' ? strtolower(trim((string) $encryption)) : null,
             'from_address' => $from !== null ? trim((string) $from) : null,
             'from_name' => $this->input('from_name') !== null ? trim((string) $this->input('from_name')) : null,
+            'body_html' => $this->input('body_html') !== null && trim((string) $this->input('body_html')) !== ''
+                ? (string) $this->input('body_html')
+                : null,
+            'body_html_opened' => $this->input('body_html_opened') !== null && trim((string) $this->input('body_html_opened')) !== ''
+                ? (string) $this->input('body_html_opened')
+                : null,
+            'body_html_closed' => $this->input('body_html_closed') !== null && trim((string) $this->input('body_html_closed')) !== ''
+                ? (string) $this->input('body_html_closed')
+                : null,
         ]);
     }
 
@@ -43,6 +52,9 @@ class UpdateEmailSettingRequest extends FormRequest
             'encryption' => ['nullable', 'string', 'in:tls,ssl'],
             'from_address' => [$enabled ? 'required' : 'nullable', 'email', 'max:150'],
             'from_name' => ['nullable', 'string', 'max:150'],
+            'body_html' => ['nullable', 'string'],
+            'body_html_opened' => ['nullable', 'string'],
+            'body_html_closed' => ['nullable', 'string'],
         ];
     }
 }

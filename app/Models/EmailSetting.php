@@ -18,6 +18,9 @@ class EmailSetting extends Model
         'encryption',
         'from_address',
         'from_name',
+        'body_html',
+        'body_html_opened',
+        'body_html_closed',
     ];
 
     protected $casts = [

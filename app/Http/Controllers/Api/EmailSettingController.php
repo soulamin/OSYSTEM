@@ -30,6 +30,9 @@ class EmailSettingController extends Controller
             'encryption' => $setting->encryption,
             'from_address' => $setting->from_address,
             'from_name' => $setting->from_name,
+            'body_html' => $setting->body_html,
+            'body_html_opened' => $setting->body_html_opened,
+            'body_html_closed' => $setting->body_html_closed,
             'has_password' => $setting->password_encrypted ? true : false,
         ];
     }
