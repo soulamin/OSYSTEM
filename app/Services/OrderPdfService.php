@@ -240,13 +240,42 @@ HTML;
 
         $this->mailConfig($setting, $company);
 
+        $recipients = [
+            ['email' => $company?->email, 'hideValues' => false],
+            ['email' => $order->client?->email, 'hideValues' => true],
+            ['email' => $order->responsible?->email, 'hideValues' => true],
+        ];
+
+        $filename = $this->pdfFilename($order);
         $safeNumber = str_pad((string) $order->number, 6, '0', STR_PAD_LEFT);
         $subject = "OS {$safeNumber} - Aberta";
         $bodyHtml = $this->renderEmailBodyHtml($this->emailBodyTemplate($setting, 'opened'), $order, $company, 'opened');
 
-        $this->sendHtmlEmails([
-            $company?->email,
-            $order->responsible?->email,
-        ], $subject, $bodyHtml);
+        $cache = [];
+
+        foreach ($recipients as $r) {
+            $email = trim((string) ($r['email'] ?? ''));
+            if ($email === '') {
+                continue;
+            }
+
+            $hideValues = (bool) ($r['hideValues'] ?? true);
+            $cacheKey = $hideValues ? 'hide' : 'full';
+
+            try {
+                if (! array_key_exists($cacheKey, $cache)) {
+                    $cache[$cacheKey] = $this->pdfBytes($order, $company, $hideValues);
+                }
+                $bytes = $cache[$cacheKey];
+
+                $this->sendHtmlEmails([$email], $subject, $bodyHtml, $filename, $bytes);
+            } catch (\Throwable $e) {
+                Log::warning('Falha ao enviar PDF da OS por e-mail (abertura).', [
+                    'order_id' => $order->id,
+                    'email' => $email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 }

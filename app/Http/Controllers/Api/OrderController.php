@@ -227,6 +227,9 @@ class OrderController extends Controller
         if ($role === 'admin' && $order->status === Order::STATUS_FINALIZADA && $order->signature_image && $order->solution) {
             app(OrderPdfService::class)->generateAndStore($order);
         }
+        if (in_array($order->status, [Order::STATUS_ABERTA, Order::STATUS_EM_ANDAMENTO], true) && ! $order->pdf_path) {
+            app(OrderPdfService::class)->generateAndStore($order);
+        }
         if ($order->status === Order::STATUS_FINALIZADA && $order->signature_image && $order->solution) {
             app(OrderPdfService::class)->sendClosedEmails($order);
         } elseif (in_array($order->status, [Order::STATUS_ABERTA, Order::STATUS_EM_ANDAMENTO], true)) {

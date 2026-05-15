@@ -4,39 +4,39 @@
     <meta charset="utf-8">
     <title>OS #{{ $order->number }}</title>
     <style>
-        @page { margin: 24px; }
+        @page { margin: 15px 24px; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #111; }
         table { width: 100%; border-collapse: collapse; }
-        .header-shell { margin-bottom: 12px; border: 1px solid #0b2f6a; }
+        .header-shell { margin-bottom: 8px; border: 1px solid #0b2f6a; }
         .header-top { background: #0b3d91; color: #fff; }
-        .header-top td { padding: 16px; vertical-align: middle; }
+        .header-top td { padding: 10px 16px; vertical-align: middle; }
         .logo-wrap { width: 108px; text-align: center; }
-        .logo-box { display: inline-block; width: 88px; height: 88px; text-align: center; }
-        .logo-box img { max-width: 76px; max-height: 76px; margin-top: 6px; }
+        .logo-box { display: inline-block; width: 68px; height: 68px; text-align: center; }
+        .logo-box img { max-width: 68px; max-height: 68px; margin-top: 0px; }
         .logo-fallback { color: #fff; font-size: 28px; font-weight: bold; line-height: 88px; letter-spacing: 1px; }
         .header-title { font-size: 22px; font-weight: bold; letter-spacing: .4px; }
         .header-sub { font-size: 12px; opacity: .95; margin-top: 4px; }
         .company-name { font-size: 16px; font-weight: bold; margin-bottom: 3px; }
         .company-line { font-size: 11px; margin-bottom: 2px; opacity: .96; }
         .header-meta { background: #f4f7fb; border-top: 1px solid #d6e1f2; }
-        .header-meta td { width: 33.33%; padding: 10px 12px; border-right: 1px solid #d6e1f2; }
+        .header-meta td { width: 33.33%; padding: 6px 12px; border-right: 1px solid #d6e1f2; }
         .header-meta td:last-child { border-right: none; }
         .meta-label { display: block; color: #5f6f85; font-size: 10px; text-transform: uppercase; margin-bottom: 3px; }
         .meta-value { font-size: 13px; font-weight: bold; color: #15355f; }
-        .box { border: 1px solid #d9d9d9; padding: 10px 12px; margin-bottom: 10px; }
-        .box-title { font-weight: bold; margin-bottom: 8px; color: #15355f; }
+        .box { border: 1px solid #d9d9d9; padding: 6px 10px; margin-bottom: 8px; }
+        .box-title { font-weight: bold; margin-bottom: 4px; color: #15355f; }
         .muted { color: #666; }
         .field { width: 100%; }
-        .field td { padding: 4px 0; vertical-align: top; }
+        .field td { padding: 2px 0; vertical-align: top; }
         .label { width: 130px; color: #333; font-weight: bold; }
         .value { border-bottom: 1px solid #bbb; padding-bottom: 2px; }
-        .textblock { min-height: 70px; border: 1px solid #e1e1e1; padding: 8px; }
-        .textblock.small { min-height: 56px; }
-        .sign-box { border: 1px solid #e1e1e1; padding: 12px; min-height: 110px; }
+        .textblock { min-height: 50px; border: 1px solid #e1e1e1; padding: 6px; }
+        .textblock.small { min-height: 40px; }
+        .sign-box { border: 1px solid #e1e1e1; padding: 6px; min-height: 50px; }
         .sign-title { font-weight: bold; margin-bottom: 8px; color: #15355f; }
-        .sign-line { border-top: 1px solid #111; margin-top: 70px; padding-top: 4px; color: #333; }
+        .sign-line { border-top: 1px solid #111; margin-top: 40px; padding-top: 4px; color: #333; }
         .sign-img { text-align: center; }
-        .sign-img img { max-width: 100%; max-height: 140px; }
+        .sign-img img { max-width: 50%; max-height: 50px; }
         .sign-meta { margin-top: 10px; }
         .sign-meta td { padding: 3px 0; vertical-align: top; }
         .page-break { page-break-before: always; }
@@ -55,6 +55,7 @@
         $finalDate = $order->closed_at ? optional($order->closed_at)->format('d/m/Y') : '';
         $companyName = trim((string) ($company?->name ?? ''));
         $companyLogo = $company?->logo_image ?: null;
+        $gdAvailable = extension_loaded('gd') || function_exists('imagecreatetruecolor');
         $companyCnpj = preg_replace('/\D+/', '', (string) ($company?->cnpj ?? ''));
         if (strlen($companyCnpj) === 14) {
             $companyCnpj = preg_replace('/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/', '$1.$2.$3/$4-$5', $companyCnpj);
@@ -80,7 +81,7 @@
             <tr>
                 <td class="logo-wrap">
                     <div class="logo-box">
-                        @if($companyLogo)
+                        @if($companyLogo && $gdAvailable)
                             <img src="{{ $companyLogo }}" alt="Logo da empresa">
                         @else
                             <div class="logo-fallback">OS</div>
@@ -164,7 +165,7 @@
                 <td class="value">{{ $order->responsible?->name ?: ' ' }}</td>
             </tr>
         </table>
-        <div class="muted" style="margin-top: 6px;">
+        <div class="muted" style="margin-top: 2px;">
             Abertura: {{ optional($order->opened_at)->format('d/m/Y H:i') }}
             @if($order->closed_at)
                 | Fechamento: {{ optional($order->closed_at)->format('d/m/Y H:i') }}
@@ -175,25 +176,26 @@
 
        <div class="box">
             <div class="box-title">Descrição do Problema</div>
-            <div class="textblock">@if($problemText !== ''){!! nl2br(e($problemText)) !!}@else&nbsp;@endif</div>
+            <div class="textblock small">@if($problemText !== ''){!! nl2br(e($problemText)) !!}@else&nbsp;@endif</div>
         </div>
 
         <div class="box">
             <div class="box-title">Solução Realizada</div>
-            <div class="textblock">@if($solutionText !== ''){!! nl2br(e($solutionText)) !!}@else&nbsp;@endif</div>
-        </div>    <div class="page-break"></div>
+            <div class="textblock small">@if($solutionText !== ''){!! nl2br(e($solutionText)) !!}@else&nbsp;@endif</div>
+        </div>
 
-   
         <div class="box">
             <div class="box-title">Confirmação do Cliente</div>
             <div class="sign-box">
-                @if($order->signature_image)
+                @if($order->signature_image && $gdAvailable)
                     <div class="sign-img">
                         <img src="{{ $order->signature_image }}" alt="Assinatura do Cliente">
                     </div>
                     @if($order->signature_signed_at)
                         <div class="muted" style="margin-top: 6px;">Assinado em {{ $order->signature_signed_at->format('d/m/Y H:i') }}</div>
                     @endif
+                @elseif($order->signature_image && ! $gdAvailable)
+                    <div class="muted">Assinatura indisponível: extensão GD não instalada.</div>
                 @else
                     <div class="muted">Sem assinatura.</div>
                 @endif

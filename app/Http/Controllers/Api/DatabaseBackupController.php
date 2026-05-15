@@ -22,10 +22,16 @@ class DatabaseBackupController extends Controller
     {
         $this->ensureAdmin($request);
 
-        $backup = $service->createBackup();
+        try {
+            $backup = $service->createBackup();
 
-        return response()->download($backup['path'], $backup['filename'], [
-            'Content-Type' => 'application/octet-stream',
-        ]);
+            return response()->download($backup['path'], $backup['filename'], [
+                'Content-Type' => 'application/octet-stream',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => $e->getMessage() ?: 'Falha ao gerar o backup do banco de dados.',
+            ], 500);
+        }
     }
 }

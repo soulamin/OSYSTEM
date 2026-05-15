@@ -45,7 +45,7 @@ class DatabaseBackupService
             'mariadb-dump',
         ]);
 
-        $process = new Process([
+        $commonArgs = [
             $binary,
             '--single-transaction',
             '--quick',
@@ -55,25 +55,76 @@ class DatabaseBackupService
             '--hex-blob',
             '--skip-comments',
             '--default-character-set=' . ($connection['charset'] ?? 'utf8mb4'),
-            '--host=' . ($connection['host'] ?? '127.0.0.1'),
-            '--port=' . ($connection['port'] ?? '3306'),
-            '--user=' . ($connection['username'] ?? ''),
             '--result-file=' . $backup['path'],
             $database,
-        ]);
+        ];
+
+        $host = (string) ($connection['host'] ?? '127.0.0.1');
+        $portRaw = (string) ($connection['port'] ?? '3306');
+        $portDigits = preg_replace('/\D+/', '', $portRaw) ?: '3306';
+        $username = (string) ($connection['username'] ?? '');
+
+        $tcpArgs = [
+            '--host=' . ($host !== '' ? $host : '127.0.0.1'),
+            '--port=' . $portDigits,
+            '--user=' . $username,
+        ];
+
+        $pipeSocket = (string) (($connection['unix_socket'] ?? '') ?: (env('MYSQLDUMP_SOCKET') ?: ''));
+        $pipeArgs = [
+            '--protocol=PIPE',
+            '--socket=' . $pipeSocket,
+            '--user=' . $username,
+        ];
 
         $env = [];
-        if (array_key_exists('password', $connection)) {
-            $env['MYSQL_PWD'] = (string) ($connection['password'] ?? '');
+        $pwd = array_key_exists('password', $connection) ? (string) ($connection['password'] ?? '') : '';
+        if ($pwd !== '') {
+            $env['MYSQL_PWD'] = $pwd;
         }
 
-        $process->setEnv($env);
-        $process->setTimeout(600);
-        $process->run();
+        $attempts = [
+            ['connect' => $tcpArgs, 'extra' => ['--no-tablespaces', '--column-statistics=0']],
+            ['connect' => $tcpArgs, 'extra' => ['--no-tablespaces']],
+            ['connect' => $tcpArgs, 'extra' => []],
+        ];
 
-        if (! $process->isSuccessful()) {
+        $hasPipeSocket = trim($pipeSocket) !== '';
+        if ($hasPipeSocket) {
+            $attempts[] = ['connect' => $pipeArgs, 'extra' => []];
+        }
+
+        $lastError = '';
+
+        foreach ($attempts as $try) {
             @File::delete($backup['path']);
-            throw new RuntimeException('Falha ao gerar o dump do MySQL: ' . trim($process->getErrorOutput() ?: $process->getOutput()));
+
+            $connectArgs = $try['connect'] ?? [];
+            $extraArgs = $try['extra'] ?? [];
+            $process = new Process(array_merge($commonArgs, $connectArgs, $extraArgs));
+            if (! empty($env)) {
+                $process->setEnv($env);
+            }
+            $process->setTimeout(600);
+            $process->run();
+
+            if ($process->isSuccessful()) {
+                $lastError = '';
+                break;
+            }
+
+            $lastError = trim($process->getErrorOutput() ?: $process->getOutput());
+            $lower = strtolower($lastError);
+            $isOptionCompat = str_contains($lower, 'unknown variable') || str_contains($lower, 'unknown option') || str_contains($lower, 'unrecognized option');
+            $isSocketError = str_contains($lower, 'can\'t create tcp/ip socket') || str_contains($lower, 'got error: 2004');
+            if (! $isOptionCompat && ! $isSocketError) {
+                break;
+            }
+        }
+
+        if ($lastError !== '') {
+            @File::delete($backup['path']);
+            throw new RuntimeException('Falha ao gerar o dump do MySQL: ' . $lastError);
         }
 
         return $this->finalizeBackup($backup['path'], $backup['filename']);
@@ -109,11 +160,13 @@ class DatabaseBackupService
         ]);
 
         $env = [];
-        if (array_key_exists('password', $connection)) {
-            $env['PGPASSWORD'] = (string) ($connection['password'] ?? '');
+        $pwd = array_key_exists('password', $connection) ? (string) ($connection['password'] ?? '') : '';
+        if ($pwd !== '') {
+            $env['PGPASSWORD'] = $pwd;
         }
-
-        $process->setEnv($env);
+        if (! empty($env)) {
+            $process->setEnv($env);
+        }
         $process->setTimeout(600);
         $process->run();
 
@@ -180,6 +233,6 @@ class DatabaseBackupService
             }
         }
 
-        throw new RuntimeException('Nao foi possivel localizar o executavel de backup do banco.');
+        throw new RuntimeException('Nao foi possivel localizar o executavel de backup do banco. Configure MYSQLDUMP_PATH (MySQL/MariaDB) ou PG_DUMP_PATH (PostgreSQL) no .env, ou instale o cliente do banco (ex.: XAMPP).');
     }
 }

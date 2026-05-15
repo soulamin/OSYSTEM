@@ -942,7 +942,7 @@
                                     <td v-if="isAdmin" class="d-none d-sm-table-cell">R$ {{ formatMoney(o.total_value) }}</td>
                                     <td>
                                         <button class="btn btn-sm btn-info mr-1" @click="viewOrder(o)"><i class="fas fa-eye"></i></button>
-                                        <button v-if="o.status === 'finalizada'" class="btn btn-sm btn-secondary mr-1" @click="downloadOrderPdf(o.id, o.number)"><i class="fas fa-file-pdf"></i></button>
+                                        <button class="btn btn-sm mr-1" :class="o.status === 'finalizada' ? 'btn-secondary' : 'btn-outline-secondary'" @click="downloadOrderPdf(o.id, o.number)"><i class="fas fa-file-pdf"></i></button>
                                         <button v-if="isAdmin" class="btn btn-sm btn-warning mr-1" @click="openOrderModal(o)"><i class="fas fa-edit"></i></button>
                                         <button v-if="!isClient && o.status !== 'finalizada' && o.status !== 'cancelada'" class="btn btn-sm btn-success mr-1" @click="openCloseOrderModal(o)">
                                             <i class="fas fa-check"></i>
@@ -2195,6 +2195,30 @@ createApp({
             }
             return 'Erro ao processar a requisição.';
         },
+        async apiErrorMessageAsync(err) {
+            const sync = this.apiErrorMessage(err);
+            const hasBlob = err && err.response && err.response.data && typeof Blob !== 'undefined' && err.response.data instanceof Blob;
+            if (!hasBlob) return sync;
+            try {
+                const blob = err.response.data;
+                const text = await blob.text();
+                const trimmed = String(text || '').trim();
+                if (!trimmed) return sync;
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    if (parsed && parsed.message) return parsed.message;
+                    if (parsed && parsed.errors) {
+                        const firstKey = Object.keys(parsed.errors)[0];
+                        const firstArr = parsed.errors[firstKey];
+                        return (firstArr && firstArr[0]) || sync;
+                    }
+                } catch (e2) {
+                }
+                return trimmed;
+            } catch (e3) {
+                return sync;
+            }
+        },
         async login() {
             this.ui.loading = true;
             this.ui.alert = '';
@@ -2810,7 +2834,8 @@ createApp({
                 window.URL.revokeObjectURL(url);
                 this.setNotice('PDF gerado com sucesso.');
             } catch (e) {
-                this.setAlert('Não foi possível baixar o PDF.');
+                const msg = await this.apiErrorMessageAsync(e);
+                this.setAlert(msg || 'Não foi possível baixar o PDF.');
             }
         },
         async downloadDatabaseBackup() {
@@ -2835,7 +2860,7 @@ createApp({
                 window.URL.revokeObjectURL(url);
                 this.setNotice('Backup gerado com sucesso.');
             } catch (e) {
-                this.setAlert(this.apiErrorMessage(e));
+                this.setAlert(await this.apiErrorMessageAsync(e));
             } finally {
                 this.ui.loading = false;
             }
