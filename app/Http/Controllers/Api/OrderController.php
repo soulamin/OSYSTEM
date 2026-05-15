@@ -390,6 +390,7 @@ class OrderController extends Controller
         $user = $request->user();
         $role = $user?->role ?: 'admin';
         $hideValues = $role !== 'admin';
+        $context = $order->status === Order::STATUS_FINALIZADA ? 'closed' : 'opened';
 
         $order->loadMissing(['client', 'services', 'responsible']);
         $company = Company::query()->first();
@@ -408,6 +409,7 @@ class OrderController extends Controller
             'order' => $order,
             'company' => $company,
             'hideValues' => $hideValues,
+            'context' => $context,
         ])->setPaper('a4');
         return $pdf->download("OS-{$safeNumber}.pdf");
     }

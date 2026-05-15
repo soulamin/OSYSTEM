@@ -136,7 +136,7 @@ HTML;
         }
     }
 
-    private function pdfBytes(Order $order, ?Company $company, bool $hideValues): string
+    private function pdfBytes(Order $order, ?Company $company, bool $hideValues, string $context = 'closed'): string
     {
         $order->loadMissing(['client', 'services', 'responsible']);
 
@@ -144,6 +144,7 @@ HTML;
             'order' => $order,
             'company' => $company,
             'hideValues' => $hideValues,
+            'context' => $context,
         ])->setPaper('a4')->setOptions([
             'defaultFont' => 'DejaVu Sans',
             'isHtml5ParserEnabled' => true,
@@ -167,8 +168,9 @@ HTML;
 
         $safeNumber = str_pad((string) $order->number, 6, '0', STR_PAD_LEFT);
         $path = "orders/OS-{$safeNumber}.pdf";
+        $context = $order->status === Order::STATUS_FINALIZADA ? 'closed' : 'opened';
 
-        Storage::disk('local')->put($path, $this->pdfBytes($order, $company, false));
+        Storage::disk('local')->put($path, $this->pdfBytes($order, $company, false, $context));
 
         $order->pdf_path = $path;
         $order->pdf_generated_at = now();
@@ -213,7 +215,7 @@ HTML;
 
             try {
                 if (! array_key_exists($cacheKey, $cache)) {
-                    $cache[$cacheKey] = $this->pdfBytes($order, $company, $hideValues);
+                    $cache[$cacheKey] = $this->pdfBytes($order, $company, $hideValues, 'closed');
                 }
                 $bytes = $cache[$cacheKey];
 
@@ -264,7 +266,7 @@ HTML;
 
             try {
                 if (! array_key_exists($cacheKey, $cache)) {
-                    $cache[$cacheKey] = $this->pdfBytes($order, $company, $hideValues);
+                    $cache[$cacheKey] = $this->pdfBytes($order, $company, $hideValues, 'opened');
                 }
                 $bytes = $cache[$cacheKey];
 

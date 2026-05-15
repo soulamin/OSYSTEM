@@ -33,6 +33,9 @@
         .textblock { min-height: 50px; border: 1px solid #e1e1e1; padding: 6px; }
         .textblock.small { min-height: 40px; }
         .sign-box { border: 1px solid #e1e1e1; padding: 6px; min-height: 50px; }
+        .right { text-align: right; }
+        .services-table th, .services-table td { padding: 4px 6px; border-bottom: 1px solid #e9e9e9; vertical-align: top; }
+        .services-table th { text-align: left; color: #15355f; font-size: 11px; }
         .sign-title { font-weight: bold; margin-bottom: 8px; color: #15355f; }
         .sign-line { border-top: 1px solid #111; margin-top: 40px; padding-top: 4px; color: #333; }
         .sign-img { text-align: center; }
@@ -56,6 +59,7 @@
         $companyName = trim((string) ($company?->name ?? ''));
         $companyLogo = $company?->logo_image ?: null;
         $gdAvailable = extension_loaded('gd') || function_exists('imagecreatetruecolor');
+        $pdfContext = trim((string) ($context ?? '')) !== '' ? trim((string) $context) : ($order->status === 'finalizada' ? 'closed' : 'opened');
         $companyCnpj = preg_replace('/\D+/', '', (string) ($company?->cnpj ?? ''));
         if (strlen($companyCnpj) === 14) {
             $companyCnpj = preg_replace('/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/', '$1.$2.$3/$4-$5', $companyCnpj);
@@ -175,13 +179,38 @@
     </div>
 
        <div class="box">
-            <div class="box-title">Descrição do Problema</div>
+            <div class="box-title">Descrição do Serviço</div>
             <div class="textblock small">@if($problemText !== ''){!! nl2br(e($problemText)) !!}@else&nbsp;@endif</div>
         </div>
 
         <div class="box">
             <div class="box-title">Solução Realizada</div>
             <div class="textblock small">@if($solutionText !== ''){!! nl2br(e($solutionText)) !!}@else&nbsp;@endif</div>
+        </div>
+
+        <div class="box">
+            <div class="box-title">Serviços</div>
+            <table class="services-table">
+                <thead>
+                <tr>
+                    <th>Serviço</th>
+                    <th style="width: 60px;" class="right">Qtd</th>
+                </tr>
+                </thead>
+                <tbody>
+                @forelse($order->services as $service)
+                    @php $qty = (int) ($service->pivot->quantity ?? 1); @endphp
+                    <tr>
+                        <td>{{ $service->name }}</td>
+                        <td class="right">{{ $qty }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="2" class="muted">Nenhum serviço informado.</td>
+                    </tr>
+                @endforelse
+                </tbody>
+            </table>
         </div>
 
         <div class="box">
@@ -192,22 +221,36 @@
                         <img src="{{ $order->signature_image }}" alt="Assinatura do Cliente">
                     </div>
                     @if($order->signature_signed_at)
-                        <div class="muted" style="margin-top: 6px;">Assinado em {{ $order->signature_signed_at->format('d/m/Y H:i') }}</div>
+                        <div class="muted" style="margin-top: 6px;">Assinado em {{ $order->signature_signed_at->format('d/m/Y H:i')  }}</div>
                     @endif
                 @elseif($order->signature_image && ! $gdAvailable)
                     <div class="muted">Assinatura indisponível: extensão GD não instalada.</div>
                 @else
-                    <div class="muted">Sem assinatura.</div>
+                    @if($pdfContext !== 'opened')
+                        <div class="muted">Sem assinatura.</div>
+                    @endif
                 @endif
                 <table class="field sign-meta">
+                      @if($pdfContext == 'opened')
+                        <tr>
+                          <td class="label">Assinatura: </td>
+                          <td class="value"></td>
+                        </tr>
+                      @endif
                     <tr>
                         <td class="label">Nome:</td>
-                        <td class="value">{{ $clientName ?: ' ' }}</td>
+                        <td class="value">{{ $pdfContext === 'opened' ? ' ' : ($clientName ?: ' ') }}</td>
                     </tr>
                     <tr>
                         <td class="label">Documento:</td>
-                        <td class="value">{{ $clientDocument ?: ' ' }}</td>
+                        <td class="value">{{ $pdfContext === 'opened' ? ' ' : ($clientDocument ?: ' ') }}</td>
                     </tr>
+                    @if($pdfContext == 'opened')
+                        <tr>
+                          <td class="label">Data: </td>
+                          <td>______/________/________</td>
+                        </tr>
+                      @endif
                 </table>
             </div>
         </div>
