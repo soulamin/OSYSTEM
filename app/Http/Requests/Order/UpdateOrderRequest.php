@@ -16,6 +16,7 @@ class UpdateOrderRequest extends FormRequest
     {
         return [
             'client_id' => ['sometimes', 'required', 'integer', 'exists:clients,id'],
+            'category_id' => ['sometimes', 'nullable', 'integer', 'exists:order_categories,id'],
             'client_name' => ['sometimes', 'nullable', 'string', 'max:150'],
             'client_document' => ['sometimes', 'nullable', 'string', 'max:30'],
             'responsible_user_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],

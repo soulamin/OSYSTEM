@@ -346,6 +346,12 @@
                             </a>
                         </li>
                         <li class="nav-item" v-if="isAdmin">
+                            <a href="#/categories" class="nav-link" :class="{ active: currentView === 'categories' }">
+                                <i class="nav-icon fas fa-tags"></i>
+                                <p>Categorias</p>
+                            </a>
+                        </li>
+                        <li class="nav-item" v-if="isAdmin">
                             <a href="#/company" class="nav-link" :class="{ active: currentView === 'company' }">
                                 <i class="nav-icon fas fa-building"></i>
                                 <p>Empresa</p>
@@ -406,7 +412,7 @@
 
                     <div v-if="currentView === 'dashboard' && isAdmin" class="row">
                         <div class="col-lg-4 col-12">
-                            <div class="small-box bg-info">
+                            <div class="small-box bg-info" style="cursor: pointer;" @click="openDashboardDetail('open')">
                                 <div class="inner">
                                     <h3>{{ dashboard.open }}</h3>
                                     <p>OS Abertas</p>
@@ -414,10 +420,11 @@
                                 <div class="icon">
                                     <i class="fas fa-folder-open"></i>
                                 </div>
+                                <a href="#" class="small-box-footer" @click.prevent="openDashboardDetail('open')">Ver detalhes <i class="fas fa-arrow-circle-right"></i></a>
                             </div>
                         </div>
                         <div class="col-lg-4 col-12">
-                            <div class="small-box bg-success">
+                            <div class="small-box bg-success" style="cursor: pointer;" @click="openDashboardDetail('finalized')">
                                 <div class="inner">
                                     <h3>{{ dashboard.finalized }}</h3>
                                     <p>OS Finalizadas</p>
@@ -425,10 +432,11 @@
                                 <div class="icon">
                                     <i class="fas fa-check"></i>
                                 </div>
+                                <a href="#" class="small-box-footer" @click.prevent="openDashboardDetail('finalized')">Ver detalhes <i class="fas fa-arrow-circle-right"></i></a>
                             </div>
                         </div>
                         <div class="col-lg-4 col-12">
-                            <div class="small-box bg-warning">
+                            <div class="small-box bg-warning" style="cursor: pointer;" @click="openDashboardDetail('revenue')">
                                 <div class="inner">
                                     <h3>R$ {{ formatMoney(dashboard.revenue_total) }}</h3>
                                     <p>Faturamento total</p>
@@ -436,6 +444,7 @@
                                 <div class="icon">
                                     <i class="fas fa-dollar-sign"></i>
                                 </div>
+                                <a href="#" class="small-box-footer" @click.prevent="openDashboardDetail('revenue')">Ver detalhes <i class="fas fa-arrow-circle-right"></i></a>
                             </div>
                         </div>
                     </div>
@@ -558,6 +567,62 @@
                                     </li>
                                     <li class="page-item" :class="{ disabled: services.page >= services.lastPage }">
                                         <a class="page-link" href="#" @click.prevent="fetchServices(services.page + 1)">»</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentView === 'categories' && isAdmin" class="card">
+                        <div class="card-header">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between">
+                                <div class="input-group" style="max-width: 420px;">
+                                    <input v-model.trim="categories.filters.q" class="form-control" placeholder="Buscar (nome, descrição)" @input="debouncedFetchCategories()">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-default" @click="fetchCategories(1)"><i class="fas fa-search"></i></button>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" @click="openCategoryModal()"><i class="fas fa-plus"></i> Nova categoria</button>
+                            </div>
+                        </div>
+                        <div class="card-body table-responsive p-0">
+                            <table class="table table-hover text-nowrap">
+                                <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Descrição</th>
+                                    <th style="width: 130px;">Ações</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr v-for="c in categories.items" :key="'cat'+c.id">
+                                    <td>{{ c.name }}</td>
+                                    <td>{{ c.description || '-' }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning mr-1" @click="openCategoryModal(c)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-danger" @click="deleteCategory(c)"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr v-if="categories.items.length === 0">
+                                    <td colspan="3" class="text-center text-muted p-4">Nenhuma categoria encontrada.</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted">
+                                    Página {{ categories.page }} de {{ categories.lastPage }}
+                                </div>
+                                <ul class="pagination pagination-sm m-0">
+                                    <li class="page-item" :class="{ disabled: categories.page <= 1 }">
+                                        <a class="page-link" href="#" @click.prevent="fetchCategories(categories.page - 1)">«</a>
+                                    </li>
+                                    <li v-for="p in pageWindow(categories.page, categories.lastPage)" :key="'cap'+p" class="page-item" :class="{ active: p === categories.page }">
+                                        <a class="page-link" href="#" @click.prevent="fetchCategories(p)">{{ p }}</a>
+                                    </li>
+                                    <li class="page-item" :class="{ disabled: categories.page >= categories.lastPage }">
+                                        <a class="page-link" href="#" @click.prevent="fetchCategories(categories.page + 1)">»</a>
                                     </li>
                                 </ul>
                             </div>
@@ -943,7 +1008,7 @@
                                     <td>
                                         <button class="btn btn-sm btn-info mr-1" @click="viewOrder(o)"><i class="fas fa-eye"></i></button>
                                         <button class="btn btn-sm mr-1" :class="o.status === 'finalizada' ? 'btn-secondary' : 'btn-outline-secondary'" @click="downloadOrderPdf(o.id, o.number)"><i class="fas fa-file-pdf"></i></button>
-                                        <button v-if="isAdmin" class="btn btn-sm btn-warning mr-1" @click="openOrderModal(o)"><i class="fas fa-edit"></i></button>
+                                        <button v-if="isAdmin && o.status !== 'finalizada' && o.status !== 'cancelada'" class="btn btn-sm btn-warning mr-1" @click="openOrderModal(o)"><i class="fas fa-edit"></i></button>
                                         <button v-if="!isClient && o.status !== 'finalizada' && o.status !== 'cancelada'" class="btn btn-sm btn-success mr-1" @click="openCloseOrderModal(o)">
                                             <i class="fas fa-check"></i>
                                         </button>
@@ -1205,7 +1270,17 @@
                                 <div v-if="showOrderError('client_id')" class="invalid-feedback">{{ orderErrors.client_id }}</div>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Categoria</label>
+                                <select v-model="orderForm.category_id" class="form-control" :disabled="orderCloseMode">
+                                    <option value="">Sem categoria</option>
+                                    <option v-for="c in categoriesAll" :key="'oc'+c.id" :value="c.id">{{ c.name }}</option>
+                                </select>
+                                <div class="text-muted" style="font-size: .85rem;">Categorias são cadastradas pelo administrador.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label>Status</label>
                                 <select v-model="orderForm.status" class="form-control" :disabled="orderCloseMode" required>
@@ -1216,16 +1291,10 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label>Data de abertura</label>
                                 <input v-model="orderForm.opened_at" type="datetime-local" class="form-control" :disabled="orderCloseMode">
-                            </div>
-                        </div>
-                        <div class="col-md-2" v-if="isAdmin">
-                            <div class="form-group">
-                                <label>Total</label>
-                                <input class="form-control" :value="'R$ ' + formatMoney(orderForm.total_preview)" disabled>
                             </div>
                         </div>
                         <div class="col-md-12">
@@ -1260,7 +1329,7 @@
                     </div>
 
                     <div class="row" v-if="isAdmin">
-                        <div class="col-md-6">
+                        <div class="col-md-9">
                             <div class="form-group">
                                 <label>Responsável (técnico)</label>
                                 <select v-model="orderForm.responsible_user_id" class="form-control" :disabled="orderCloseMode">
@@ -1268,6 +1337,12 @@
                                     <option v-for="u in techniciansAll" :key="'tu'+u.id" :value="u.id">{{ u.name }} ({{ u.email }})</option>
                                 </select>
                                 <div class="text-muted" style="font-size: .85rem;">Somente o técnico responsável verá esta OS no perfil técnico.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Total</label>
+                                <input class="form-control" :value="'R$ ' + formatMoney(orderForm.total_preview)" disabled>
                             </div>
                         </div>
                     </div>
@@ -1475,6 +1550,33 @@
 @endverbatim
 </div>
 
+<div class="modal fade" id="categoryModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@{{ categoryForm.id ? 'Editar categoria' : 'Nova categoria' }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nome</label>
+                    <input v-model.trim="categoryForm.name" class="form-control" :class="{ 'is-invalid': showCategoryError('name') }" @blur="touch('category','name')" required>
+                    <div v-if="showCategoryError('name')" class="invalid-feedback">@{{ categoryErrors.name }}</div>
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input v-model.trim="categoryForm.description" class="form-control" @blur="touch('category','description')">
+                </div>
+                <div v-if="ui.modalError" class="alert alert-danger mb-0">@{{ ui.modalError }}</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" @click="saveCategory" :disabled="isBusy || categoryHasErrors">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@1.13.3/js/jquery.overlayScrollbars.min.js"></script>
@@ -1526,6 +1628,12 @@ createApp({
                 lastPage: 1,
                 filters: { q: '' },
             },
+            categories: {
+                items: [],
+                page: 1,
+                lastPage: 1,
+                filters: { q: '' },
+            },
             orders: {
                 items: [],
                 page: 1,
@@ -1539,10 +1647,12 @@ createApp({
                 filters: { q: '', role: '' },
             },
             clientsAll: [],
+            categoriesAll: [],
             servicesAll: [],
             techniciansAll: [],
             companyForm: this.emptyCompany(),
             emailSettingsForm: this.emptyEmailSettings(),
+            categoryForm: this.emptyCategory(),
             userForm: this.emptyUser(),
             clientForm: this.emptyClient(),
             serviceForm: this.emptyService(),
@@ -1554,6 +1664,7 @@ createApp({
             touched: {
                 company: {},
                 email: {},
+                category: {},
                 user: {},
                 client: {},
                 service: {},
@@ -1562,6 +1673,7 @@ createApp({
             timers: {
                 clients: null,
                 services: null,
+                categories: null,
                 orders: null,
                 users: null,
             }
@@ -1586,6 +1698,7 @@ createApp({
         titleForView() {
             if (this.currentView === 'clients') return 'Clientes';
             if (this.currentView === 'services') return 'Serviços';
+            if (this.currentView === 'categories') return 'Categorias';
             if (this.currentView === 'company') return 'Empresa';
             if (this.currentView === 'email') return 'Configuração de Email';
             if (this.currentView === 'backup') return 'Backup do Banco';
@@ -1688,6 +1801,17 @@ createApp({
         },
         companyHasErrors() {
             return Object.keys(this.companyErrors).length > 0;
+        },
+        categoryErrors() {
+            const f = this.categoryForm || {};
+            const errors = {};
+
+            if (!String(f.name || '').trim()) errors.name = 'Nome é obrigatório.';
+
+            return errors;
+        },
+        categoryHasErrors() {
+            return Object.keys(this.categoryErrors).length > 0;
         },
         emailSettingsErrors() {
             const f = this.emailSettingsForm || {};
@@ -1844,11 +1968,15 @@ createApp({
         emptyService() {
             return { id: null, name: '', description: '', value: '' };
         },
+        emptyCategory() {
+            return { id: null, name: '', description: '' };
+        },
         emptyOrder() {
             return {
                 id: null,
                 number: null,
                 client_id: '',
+                category_id: '',
                 client_name: '',
                 client_document: '',
                 responsible_user_id: '',
@@ -1874,6 +2002,9 @@ createApp({
             if (scope === 'company') {
                 Object.keys(this.companyErrors).forEach((k) => this.touch('company', k));
             }
+            if (scope === 'category') {
+                Object.keys(this.categoryErrors).forEach((k) => this.touch('category', k));
+            }
             if (scope === 'email') {
                 Object.keys(this.emailSettingsErrors).forEach((k) => this.touch('email', k));
             }
@@ -1892,6 +2023,9 @@ createApp({
         },
         showCompanyError(field) {
             return Boolean(this.touched.company && this.touched.company[field] && this.companyErrors[field]);
+        },
+        showCategoryError(field) {
+            return Boolean(this.touched.category && this.touched.category[field] && this.categoryErrors[field]);
         },
         showEmailError(field) {
             return Boolean(this.touched.email && this.touched.email[field] && this.emailSettingsErrors[field]);
@@ -2337,6 +2471,17 @@ createApp({
                 this.services.lastPage = p.lastPage;
             });
         },
+        async fetchCategories(page = 1) {
+            if (!this.isAdmin) return;
+            return await this.withPageLoading(async () => {
+                const params = { page, per_page: 10, q: this.categories.filters.q || '' };
+                const resp = await axios.get('/api/order-categories', { params });
+                const p = this.normalizePaginated(resp);
+                this.categories.items = p.items;
+                this.categories.page = p.page;
+                this.categories.lastPage = p.lastPage;
+            });
+        },
         async fetchOrders(page = 1) {
             return await this.withPageLoading(async () => {
                 const params = {
@@ -2355,10 +2500,43 @@ createApp({
                 this.orders.lastPage = p.lastPage;
             });
         },
+        async openDashboardDetail(kind) {
+            if (!this.isAdmin) return;
+
+            const k = String(kind || '').toLowerCase();
+            this.orders.filters.q = '';
+            this.orders.filters.client_id = '';
+            this.orders.filters.from = '';
+            this.orders.filters.to = '';
+
+            if (k === 'open') {
+                this.orders.filters.status = 'aberta';
+                this.setNotice('Detalhes: OS Abertas');
+            } else if (k === 'finalized') {
+                this.orders.filters.status = 'finalizada';
+                this.setNotice('Detalhes: OS Finalizadas');
+            } else if (k === 'revenue') {
+                this.orders.filters.status = 'finalizada';
+                this.setNotice('Detalhes: Faturamento (OS Finalizadas)');
+            } else {
+                this.orders.filters.status = '';
+                this.setNotice('Detalhes: Ordens de Serviço');
+            }
+
+            this.currentView = 'orders';
+            location.hash = '#/orders';
+            await this.fetchOrders(1);
+        },
         async fetchClientsAll() {
             return await this.withPageLoading(async () => {
                 const resp = await axios.get('/api/clients', { params: { all: 1 } });
                 this.clientsAll = resp.data || [];
+            });
+        },
+        async fetchCategoriesAll() {
+            return await this.withPageLoading(async () => {
+                const resp = await axios.get('/api/order-categories', { params: { all: 1 } });
+                this.categoriesAll = resp.data || [];
             });
         },
         async fetchServicesAll() {
@@ -2465,6 +2643,10 @@ createApp({
             clearTimeout(this.timers.services);
             this.timers.services = setTimeout(() => this.fetchServices(1), 350);
         },
+        debouncedFetchCategories() {
+            clearTimeout(this.timers.categories);
+            this.timers.categories = setTimeout(() => this.fetchCategories(1), 350);
+        },
         debouncedFetchOrders() {
             clearTimeout(this.timers.orders);
             this.timers.orders = setTimeout(() => this.fetchOrders(1), 350);
@@ -2564,6 +2746,50 @@ createApp({
                 this.setNotice('Serviço excluído.');
                 await this.fetchServices(this.services.page);
                 await this.fetchServicesAll();
+            } catch (e) {
+                this.setAlert(this.apiErrorMessage(e));
+            }
+        },
+        openCategoryModal(category = null) {
+            this.ui.modalError = '';
+            this.touched.category = {};
+            this.categoryForm = category ? { ...category } : this.emptyCategory();
+            $('#categoryModal').modal('show');
+        },
+        async saveCategory() {
+            this.touchAll('category');
+            if (this.categoryHasErrors) {
+                this.ui.modalError = 'Verifique os campos do formulário.';
+                return;
+            }
+
+            this.ui.loading = true;
+            this.ui.modalError = '';
+            try {
+                const payload = { ...this.categoryForm };
+                if (payload.id) {
+                    await axios.put(`/api/order-categories/${payload.id}`, payload);
+                    this.setNotice('Categoria atualizada.');
+                } else {
+                    await axios.post('/api/order-categories', payload);
+                    this.setNotice('Categoria criada.');
+                }
+                $('#categoryModal').modal('hide');
+                await this.fetchCategories(this.categories.page);
+                await this.fetchCategoriesAll();
+            } catch (e) {
+                this.setModalError(this.apiErrorMessage(e));
+            } finally {
+                this.ui.loading = false;
+            }
+        },
+        async deleteCategory(category) {
+            if (!confirm(`Excluir categoria "${category.name}"?`)) return;
+            try {
+                await axios.delete(`/api/order-categories/${category.id}`);
+                this.setNotice('Categoria excluída.');
+                await this.fetchCategories(this.categories.page);
+                await this.fetchCategoriesAll();
             } catch (e) {
                 this.setAlert(this.apiErrorMessage(e));
             }
@@ -2712,6 +2938,7 @@ createApp({
                 this.orderForm.id = order.id;
                 this.orderForm.number = order.number;
                 this.orderForm.client_id = order.client_id;
+                this.orderForm.category_id = order.category_id || '';
                 this.orderForm.client_name = order.client_name || '';
                 this.orderForm.client_document = this.maskCpfCnpj(order.client_document || '');
                 this.orderForm.responsible_user_id = order.responsible_user_id || '';
@@ -2747,6 +2974,7 @@ createApp({
                     this.orderForm.quantities = { ...this.orderForm.quantities, ...quantities };
                     this.orderForm.signature_image = full.signature_image || this.orderForm.signature_image || '';
                     this.orderForm.responsible_user_id = full.responsible_user_id || this.orderForm.responsible_user_id || '';
+                    this.orderForm.category_id = full.category_id || this.orderForm.category_id || '';
                     this.orderForm.solution = full.solution || this.orderForm.solution || '';
                     this.orderForm.client_name = full.client_name || this.orderForm.client_name || '';
                     this.orderForm.client_document = this.maskCpfCnpj(full.client_document || this.orderForm.client_document || '');
@@ -2781,6 +3009,7 @@ createApp({
 
                 const payload = {
                     client_id: this.orderForm.client_id,
+                    category_id: this.orderForm.category_id || null,
                     client_name: this.orderForm.client_name || null,
                     client_document: this.orderForm.client_document || null,
                     status: this.orderForm.status,
@@ -2905,7 +3134,7 @@ createApp({
         setViewFromHash() {
             const defaultHash = this.isAdmin ? '#/dashboard' : '#/orders';
             const h = (location.hash || defaultHash).replace('#/', '');
-            if (['dashboard', 'clients', 'services', 'orders', 'company', 'email', 'backup', 'users'].includes(h)) {
+            if (['dashboard', 'clients', 'services', 'categories', 'orders', 'company', 'email', 'backup', 'users'].includes(h)) {
                 if (!this.isAdmin && h !== 'orders') {
                     this.currentView = 'orders';
                     return;
@@ -2913,6 +3142,9 @@ createApp({
                 this.currentView = h;
                 if (h === 'email') {
                     this.fetchEmailSettings();
+                }
+                if (h === 'categories') {
+                    this.fetchCategories(1);
                 }
                 if (h === 'users') {
                     this.fetchUsers(1);
@@ -2929,11 +3161,14 @@ createApp({
                 await this.fetchDashboard();
                 await this.fetchTechniciansAll();
                 await this.fetchClientsAll();
+                await this.fetchCategoriesAll();
                 await this.fetchServicesAll();
                 await this.fetchClients(1);
+                await this.fetchCategories(1);
                 await this.fetchServices(1);
             } else if (this.isTechnician) {
                 await this.fetchClientsAll();
+                await this.fetchCategoriesAll();
                 await this.fetchServicesAll();
             }
             this.setViewFromHash();

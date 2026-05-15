@@ -15,6 +15,7 @@ class StoreOrderRequest extends FormRequest
     {
         return [
             'client_id' => ['required', 'integer', 'exists:clients,id'],
+            'category_id' => ['nullable', 'integer', 'exists:order_categories,id'],
             'client_name' => ['nullable', 'string', 'max:150'],
             'client_document' => ['nullable', 'string', 'max:30'],
             'responsible_user_id' => ['nullable', 'integer', 'exists:users,id'],

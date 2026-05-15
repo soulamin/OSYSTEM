@@ -86,6 +86,7 @@ class OrderController extends Controller
                 'id',
                 'number',
                 'client_id',
+                'category_id',
                 'responsible_user_id',
                 'status',
                 'opened_at',
@@ -95,7 +96,7 @@ class OrderController extends Controller
                 'created_at',
                 'updated_at',
             ])
-            ->with(['client', 'responsible']);
+            ->with(['client', 'responsible', 'category']);
 
         if ($role === 'cliente') {
             $clientId = (int) ($user?->client_id ?? 0);
@@ -179,6 +180,7 @@ class OrderController extends Controller
             $order = Order::create([
                 'number' => $nextNumber,
                 'client_id' => $data['client_id'],
+                'category_id' => $data['category_id'] ?? null,
                 'client_name' => $data['client_name'] ?? null,
                 'client_document' => $data['client_document'] ?? null,
                 'responsible_user_id' => $responsibleUserId,
@@ -221,7 +223,7 @@ class OrderController extends Controller
             $order->services()->sync($sync);
             $order->update(['total_value' => round($total, 2)]);
 
-            return $order->load(['client', 'services', 'responsible']);
+            return $order->load(['client', 'services', 'responsible', 'category']);
         });
 
         if ($role === 'admin' && $order->status === Order::STATUS_FINALIZADA && $order->signature_image && $order->solution) {
@@ -247,6 +249,7 @@ class OrderController extends Controller
         $role = $user?->role ?: 'admin';
 
         $order->loadMissing(['client', 'services', 'responsible']);
+        $order->loadMissing(['category']);
 
         return response()->json($this->sanitizeOrderForRole($order, $role));
     }
@@ -270,6 +273,10 @@ class OrderController extends Controller
 
             if (array_key_exists('client_id', $data)) {
                 $order->client_id = $data['client_id'];
+            }
+
+            if (array_key_exists('category_id', $data)) {
+                $order->category_id = $data['category_id'];
             }
 
             if (array_key_exists('client_name', $data)) {
@@ -356,7 +363,7 @@ class OrderController extends Controller
             $order->total_value = round($total, 2);
             $order->save();
 
-            return $order->load(['client', 'services', 'responsible']);
+            return $order->load(['client', 'services', 'responsible', 'category']);
         });
 
         if ($role === 'admin' && $updated->status === Order::STATUS_FINALIZADA && $updated->signature_image && $updated->solution) {

@@ -16,6 +16,7 @@ class Order extends Model
     protected $fillable = [
         'number',
         'client_id',
+        'category_id',
         'client_name',
         'client_document',
         'responsible_user_id',
@@ -50,6 +51,11 @@ class Order extends Model
     public function responsible(): BelongsTo
     {
         return $this->belongsTo(User::class, 'responsible_user_id');
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(OrderCategory::class, 'category_id');
     }
 
     public function services(): BelongsToMany

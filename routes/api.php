@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\DatabaseBackupController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmailSettingController;
+use App\Http\Controllers\Api\OrderCategoryController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\UserController;
@@ -34,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('clients', ClientController::class);
     Route::apiResource('services', ServiceController::class);
+    Route::apiResource('order-categories', OrderCategoryController::class);
     Route::get('orders/{order}/pdf', [OrderController::class, 'pdf']);
     Route::apiResource('orders', OrderController::class);
 });
