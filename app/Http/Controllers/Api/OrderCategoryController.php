@@ -28,10 +28,7 @@ class OrderCategoryController extends Controller
 
         if ($request->filled('q')) {
             $q = trim((string) $request->query('q'));
-            $query->where(function ($sub) use ($q) {
-                $sub->where('name', 'like', "%{$q}%")
-                    ->orWhere('description', 'like', "%{$q}%");
-            });
+            $query->where('name', 'like', "%{$q}%");
         }
 
         $query->orderBy('name');
@@ -75,4 +72,3 @@ class OrderCategoryController extends Controller
         return response()->json(['message' => 'Categoria excluída com sucesso.']);
     }
 }
-

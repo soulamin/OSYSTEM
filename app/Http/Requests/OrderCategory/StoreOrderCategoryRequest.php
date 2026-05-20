@@ -15,8 +15,6 @@ class StoreOrderCategoryRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:150', 'unique:order_categories,name'],
-            'description' => ['nullable', 'string', 'max:255'],
         ];
     }
 }
-

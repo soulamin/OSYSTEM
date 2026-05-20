@@ -20,8 +20,6 @@ class UpdateOrderCategoryRequest extends FormRequest
 
         return [
             'name' => ['sometimes', 'required', 'string', 'max:150', Rule::unique('order_categories', 'name')->ignore($category?->id)],
-            'description' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 }
-

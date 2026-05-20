@@ -8,7 +8,5 @@ class OrderCategory extends Model
 {
     protected $fillable = [
         'name',
-        'description',
     ];
 }
-

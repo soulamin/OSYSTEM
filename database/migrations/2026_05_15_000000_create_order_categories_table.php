@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('order_categories', function (Blueprint $table) {
             $table->id();
             $table->string('name', 150)->unique();
-            $table->string('description', 255)->nullable();
             $table->timestamps();
 
             $table->index('name');
@@ -38,4 +37,3 @@ return new class extends Migration
         Schema::dropIfExists('order_categories');
     }
 };
-

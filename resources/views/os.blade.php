@@ -449,6 +449,15 @@
                         </div>
                     </div>
 
+                    <div v-if="currentView === 'dashboard' && isAdmin" class="card">
+                        <div class="card-header">
+                            <b>OS por categoria (abertas x finalizadas) - últimos 12 meses</b>
+                        </div>
+                        <div class="card-body">
+                            <div id="dashboardCategoriesChart" style="width: 100%; height: 420px;"></div>
+                        </div>
+                    </div>
+
                     <div v-if="currentView === 'clients' && isAdmin" class="card">
                         <div class="card-header">
                             <div class="d-flex flex-wrap align-items-center justify-content-between">
@@ -577,7 +586,7 @@
                         <div class="card-header">
                             <div class="d-flex flex-wrap align-items-center justify-content-between">
                                 <div class="input-group" style="max-width: 420px;">
-                                    <input v-model.trim="categories.filters.q" class="form-control" placeholder="Buscar (nome, descrição)" @input="debouncedFetchCategories()">
+                                    <input v-model.trim="categories.filters.q" class="form-control" placeholder="Buscar (nome)" @input="debouncedFetchCategories()">
                                     <div class="input-group-append">
                                         <button class="btn btn-default" @click="fetchCategories(1)"><i class="fas fa-search"></i></button>
                                     </div>
@@ -590,21 +599,19 @@
                                 <thead>
                                 <tr>
                                     <th>Nome</th>
-                                    <th>Descrição</th>
                                     <th style="width: 130px;">Ações</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <tr v-for="c in categories.items" :key="'cat'+c.id">
                                     <td>{{ c.name }}</td>
-                                    <td>{{ c.description || '-' }}</td>
                                     <td>
                                         <button class="btn btn-sm btn-warning mr-1" @click="openCategoryModal(c)"><i class="fas fa-edit"></i></button>
                                         <button class="btn btn-sm btn-danger" @click="deleteCategory(c)"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                                 <tr v-if="categories.items.length === 0">
-                                    <td colspan="3" class="text-center text-muted p-4">Nenhuma categoria encontrada.</td>
+                                    <td colspan="2" class="text-center text-muted p-4">Nenhuma categoria encontrada.</td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -1547,34 +1554,30 @@
             </div>
         </div>
     </div>
-@endverbatim
-</div>
 
-<div class="modal fade" id="categoryModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">@{{ categoryForm.id ? 'Editar categoria' : 'Nova categoria' }}</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Nome</label>
-                    <input v-model.trim="categoryForm.name" class="form-control" :class="{ 'is-invalid': showCategoryError('name') }" @blur="touch('category','name')" required>
-                    <div v-if="showCategoryError('name')" class="invalid-feedback">@{{ categoryErrors.name }}</div>
+    <div class="modal fade" id="categoryModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ categoryForm.id ? 'Editar categoria' : 'Nova categoria' }}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 </div>
-                <div class="form-group">
-                    <label>Descrição</label>
-                    <input v-model.trim="categoryForm.description" class="form-control" @blur="touch('category','description')">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nome</label>
+                        <input v-model.trim="categoryForm.name" class="form-control" :class="{ 'is-invalid': showCategoryError('name') }" @blur="touch('category','name')" required>
+                        <div v-if="showCategoryError('name')" class="invalid-feedback">{{ categoryErrors.name }}</div>
+                    </div>
+                    <div v-if="ui.modalError" class="alert alert-danger mb-0">{{ ui.modalError }}</div>
                 </div>
-                <div v-if="ui.modalError" class="alert alert-danger mb-0">@{{ ui.modalError }}</div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button class="btn btn-primary" @click="saveCategory" :disabled="isBusy || categoryHasErrors">Salvar</button>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" @click="saveCategory" :disabled="isBusy || categoryHasErrors">Salvar</button>
+                </div>
             </div>
         </div>
     </div>
+@endverbatim
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
@@ -1585,6 +1588,7 @@
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lemonadejs/dist/lemonade.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@lemonadejs/signature/dist/index.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
 
 <script>
 const { createApp } = Vue;
@@ -1615,6 +1619,7 @@ createApp({
                 finalized: 0,
                 revenue_total: 0,
             },
+            dashboardChart: null,
             company: null,
             clients: {
                 items: [],
@@ -1969,7 +1974,7 @@ createApp({
             return { id: null, name: '', description: '', value: '' };
         },
         emptyCategory() {
-            return { id: null, name: '', description: '' };
+            return { id: null, name: '' };
         },
         emptyOrder() {
             return {
@@ -2398,6 +2403,8 @@ createApp({
             return await this.withPageLoading(async () => {
                 const resp = await axios.get('/api/dashboard');
                 this.dashboard = resp.data;
+                this.dashboardChart = (resp.data && resp.data.chart) ? resp.data.chart : null;
+                this.$nextTick(() => this.renderDashboardCategoriesChart());
             });
         },
         async fetchCompany() {
@@ -2650,6 +2657,34 @@ createApp({
         debouncedFetchOrders() {
             clearTimeout(this.timers.orders);
             this.timers.orders = setTimeout(() => this.fetchOrders(1), 350);
+        },
+        renderDashboardCategoriesChart() {
+            if (!this.isAdmin) return;
+            if (this.currentView !== 'dashboard') return;
+            if (!this.dashboardChart) return;
+            if (!window.Highcharts) return;
+
+            const months = this.dashboardChart.months || [];
+            const opened = this.dashboardChart.series_open || [];
+            const closed = this.dashboardChart.series_closed || [];
+
+            const series = [];
+            opened.forEach((s) => series.push({ type: 'column', name: s.name, data: s.data || [], stack: 'Abertas' }));
+            closed.forEach((s) => series.push({ type: 'column', name: s.name, data: s.data || [], stack: 'Finalizadas' }));
+
+            window.Highcharts.chart('dashboardCategoriesChart', {
+                chart: { type: 'column' },
+                title: { text: null },
+                xAxis: { categories: months },
+                yAxis: { min: 0, title: { text: 'Quantidade' }, allowDecimals: false },
+                legend: { enabled: true },
+                tooltip: { shared: true },
+                plotOptions: {
+                    column: { stacking: 'normal', borderWidth: 0 },
+                },
+                series,
+                credits: { enabled: false },
+            });
         },
         debouncedFetchUsers() {
             clearTimeout(this.timers.users);
@@ -3148,6 +3183,13 @@ createApp({
                 }
                 if (h === 'users') {
                     this.fetchUsers(1);
+                }
+                if (h === 'dashboard') {
+                    if (!this.dashboardChart) {
+                        this.fetchDashboard();
+                    } else {
+                        this.$nextTick(() => this.renderDashboardCategoriesChart());
+                    }
                 }
             } else {
                 this.currentView = this.isAdmin ? 'dashboard' : 'orders';
